@@ -1,0 +1,130 @@
+
+enum TYPE {
+  ADMIN
+  EMPLOYEE
+}
+
+type User @aws_api_key @aws_cognito_user_pools {
+  id: ID!
+  sk: ID
+  name: String!
+  email: String!
+  password: String!
+  type: String
+  createAt: AWSDateTime
+  updatedAt: AWSDateTime
+  phone: String
+  address: String
+  inventory: [Inventory]
+  test: String
+}
+
+
+type Inventory {
+  id: ID!
+  sk: ID
+  items: [Item]!
+  quantity: Int!
+  employee: User!
+  test: String
+}
+
+type Item @aws_api_key @aws_cognito_user_pools {
+  id: ID!
+  sk: ID
+  name: String!
+  description: String!
+  quantity_in_stock: Int!
+  images: String
+  price: Float!
+  inventoryId: ID!
+}
+
+type Order {
+  id: ID!
+  sk: ID
+  items: [Item!]
+  totalPrice: Float!
+  status: String!
+}
+type Query {
+
+  users: [User]!
+    @aws_api_key @aws_cognito_user_pools
+
+  items: [Item]!
+    @aws_api_key @aws_cognito_user_pools
+
+  item(id: ID!): Item
+    @aws_api_key @aws_cognito_user_pools
+
+  orders: [Order]!
+    @aws_api_key @aws_cognito_user_pools
+
+  order(id: ID!): Order
+    @aws_api_key @aws_cognito_user_pools
+
+  inventories: [Inventory]!
+    @aws_api_key @aws_cognito_user_pools
+
+  inventory(id: ID!): Inventory
+    @aws_api_key @aws_cognito_user_pools
+
+  getUserInventories(id: ID!): User @aws_apikey
+}
+
+input CreateUser {
+    name: String!
+    email: String!
+}
+
+input CreateItem {
+    name: String!,
+    description: String!
+    quantity_in_stock: Int!
+    images: String
+    inventoryId: ID!
+    employeeId: ID!
+    orderId: ID
+}
+
+input UpdateItem {
+    id: ID!,
+    name: String,
+    description: String,
+    price: Float,
+    quantity: Int,
+}
+
+input CreateOrder {
+    totalPrice: Float
+    status: String
+}
+
+input CreateInventory {
+  quantity: Int
+  employee: ID!
+}
+
+type Mutation {
+  createUser(input: CreateUser!): User
+    @aws_api_key @aws_cognito_user_pools
+
+  createItem(input: CreateItem!): Item
+
+  updateItem(input: UpdateItem!): Item
+    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+
+  deleteItem(id: ID!): Item
+    @aws_cognito_user_pools(cognito_groups: ["admin"])
+
+  createOrder(input: CreateOrder!): Order
+
+  # updateOrder(id: ID!, userId: ID!, itemLines: [ItemLine]): Order!
+  # deleteOrder(id: ID!): Order!
+
+  createInventory(input: CreateInventory): Inventory!
+    @aws_api_key @aws_cognito_user_pools
+  # updateInventory(input: CreateInventory): Inventory!
+  # deleteInventory(id: ID!): Inventory!
+}
