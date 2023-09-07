@@ -99,6 +99,12 @@ export class CdkImsProjectStack extends cdk.Stack {
 			test_table
 		)
     // Creates a function for query
+
+
+
+    /**
+     * Get Users Inventory details
+     */
     const getUserInventoriesFunc = new appsync.AppsyncFunction(
 			this,
 			'getUserInventories',
@@ -140,88 +146,80 @@ export class CdkImsProjectStack extends cdk.Stack {
 		)
 
 
+    /**
+     * Get Users
+     */
+
     
     const get_func = new appsync.AppsyncFunction(this, 'func-get-emp', {
       name: 'get_emp_func',
       api,
       dataSource: api.addDynamoDbDataSource('ims-table-1', test_table),
-      code: appsync.Code.fromInline(`
-        export function request(ctx) {
-          return { operation: 'Scan' };
-        }
-        
-        export function response(ctx) {
-            return ctx.result.items;
-        }
-      `),
+      code: appsync.Code.fromAsset('src/pipeline/getEmployees.js'),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
+
+    new appsync.Resolver(this, 'pipeline-resolver-get-emp', {
+      api,
+      typeName: 'Query',
+      fieldName: 'users',
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [get_func],
+      code: passthrough
+    });
+
+    /**
+     * Get Inventories
+     */
+    const get_inventories = new appsync.AppsyncFunction(this, 'func-get-inventories', {
+      name: 'get_inventories_function',
+      api,
+      dataSource: DDBDataSource,
+      code: appsync.Code.fromAsset('src/pipeline/getInventories.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+    });
+
+    new appsync.Resolver(this, 'pipeline-resolver-get-inventories', {
+      api,
+      typeName: 'Query',
+      fieldName: 'inventories',
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [get_inventories],
+      code: passthrough
+    });
+
+    /**
+     * Get Items
+     */
 
     const get_items = new appsync.AppsyncFunction(this, 'func-get-items', {
       name: 'get_items_func',
       api,
       dataSource: DDBDataSource,
-      code: appsync.Code.fromInline(`
-        export function request(ctx) {
-          return { operation: 'Scan' };
-        }
-        
-        export function response(ctx) {
-            return ctx.result.items;
-        }
-      `),
+      code: appsync.Code.fromAsset('src/pipeline/getItems.js'),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
-    // const get_oders = new appsync.AppsyncFunction(this, 'func-get-orders', {
-    //   name: 'get_orders_func',
-    //   api,
-    //   dataSource: api.addDynamoDbDataSource('orders-table', orders_table),
-    //   code: appsync.Code.fromInline(`
-    //     export function request(ctx) {
-    //       return { operation: 'Scan' };
-    //     }
-        
-    //     export function response(ctx) {
-    //         return ctx.result.items;
-    //     }
-    //   `),
-    //   runtime: appsync.FunctionRuntime.JS_1_0_0,
-    // });
-
-    // const get_itemLines = new appsync.AppsyncFunction(this, 'func-get-itemLines', {
-    //   name: 'get_itemLines_func',
-    //   api,
-    //   dataSource: api.addDynamoDbDataSource('itemLines-table', itemLine_table),
-    //   code: appsync.Code.fromInline(`
-    //     export function request(ctx) {
-    //       return { operation: 'Scan' };
-    //     }
-        
-    //     export function response(ctx) {
-    //         return ctx.result.items;
-    //     }
-    //   `),
-    //   runtime: appsync.FunctionRuntime.JS_1_0_0,
-    // });
-
-    const get_inventories = new appsync.AppsyncFunction(this, 'func-get-inventories', {
-      name: 'get_inventories_function',
+    new appsync.Resolver(this, 'pipeline-resolver-get-items', {
       api,
-      dataSource: api.addDynamoDbDataSource('inventory-table', test_table),
-      code: appsync.Code.fromInline(`
-        export function request(ctx) {
-          return { operation: 'Scan' };
-        }
-        
-        export function response(ctx) {
-            return ctx.result.items;
-        }
-      `),
+      typeName: 'Query',
+      fieldName: 'items',
       runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [get_items],
+      code: passthrough
     });
-
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ *  The Blog below is the set to run Mutations in our system
+ * 
+ * 
+ */
     // Creates a function for mutation
+
+    /**
+     * Create user
+     * 
+     */
     const add_emp = new appsync.AppsyncFunction(this, 'func-add-post', {
       name: 'add_employee',
       api,
@@ -230,76 +228,6 @@ export class CdkImsProjectStack extends cdk.Stack {
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
-    const add_inventory = new appsync.AppsyncFunction(this, 'func-add-inventory', {
-      name: 'add_inventory',
-      api,
-      dataSource: api.addDynamoDbDataSource('table-for-inventory', test_table),
-      code: appsync.Code.fromAsset('src/mutations/createInventory.js'),
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-    });
-
-    const add_item = new appsync.AppsyncFunction(this, 'func-add-item', {
-      name: 'add_item',
-      api,
-      dataSource: DDBDataSource,
-      code: appsync.Code.fromAsset('src/mutations/createItem.js'),
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-    });
-
-    // const add_order = new appsync.AppsyncFunction(this, 'func-add-order', {
-    //   name: 'add_order',
-    //   api,
-    //   dataSource: api.addDynamoDbDataSource('table-for-orders', orders_table),
-    //   code: appsync.Code.fromAsset('src/mutations/createOrder.js'),
-    //   runtime: appsync.FunctionRuntime.JS_1_0_0,
-    // });
-
-    // const add_itemLine = new appsync.AppsyncFunction(this, 'func-add-itemLine', {
-    //   name: 'add_itemLine',
-    //   api,
-    //   dataSource: api.addDynamoDbDataSource('table-for-itemLine', itemLine_table),
-    //   code: appsync.Code.fromAsset('src/mutations/createItemLine.js'),
-    //   runtime: appsync.FunctionRuntime.JS_1_0_0,
-    // });
-
-    // Adds a pipeline resolver with the get function
-    new appsync.Resolver(this, 'pipeline-resolver-get-emp', {
-      api,
-      typeName: 'Query',
-      fieldName: 'users',
-      code: appsync.Code.fromAsset('src/pipeline/getEmployees.js'),
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [get_func],
-    });
-
-    new appsync.Resolver(this, 'pipeline-resolver-get-inventories', {
-      api,
-      typeName: 'Query',
-      fieldName: 'inventories',
-      code: appsync.Code.fromAsset('src/pipeline/getInventory.js'),
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [get_inventories],
-    });
-
-    new appsync.Resolver(this, 'pipeline-resolver-get-items', {
-      api,
-      typeName: 'Query',
-      fieldName: 'items',
-      code: appsync.Code.fromAsset('src/pipeline/getItem.js'),
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [get_items],
-    });
-
-    // new appsync.Resolver(this, 'pipeline-resolver-get-orders', {
-    //   api,
-    //   typeName: 'Query',
-    //   fieldName: 'orders',
-    //   code: appsync.Code.fromAsset('src/pipeline/getOrders.js'),
-    //   runtime: appsync.FunctionRuntime.JS_1_0_0,
-    //   pipelineConfig: [get_oders],
-    // });
-
-    // Adds a pipeline resolver with the create function
     new appsync.Resolver(this, 'pipeline-resolver-create-posts', {
       api,
       typeName: 'Mutation',
@@ -307,6 +235,18 @@ export class CdkImsProjectStack extends cdk.Stack {
       code: appsync.Code.fromAsset('src/pipeline/createEmployee.js'),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_emp],
+    });
+
+    /**
+     * Create inventory
+     */
+
+    const add_inventory = new appsync.AppsyncFunction(this, 'func-add-inventory', {
+      name: 'add_inventory',
+      api,
+      dataSource: api.addDynamoDbDataSource('table-for-inventory', test_table),
+      code: appsync.Code.fromAsset('src/mutations/createInventory.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
     new appsync.Resolver(this, 'pipeline-resolver-create-inventory', {
@@ -318,6 +258,18 @@ export class CdkImsProjectStack extends cdk.Stack {
       pipelineConfig: [add_inventory],
     });
 
+    /**
+     * Create Item
+     */
+
+    const add_item = new appsync.AppsyncFunction(this, 'func-add-item', {
+      name: 'add_item',
+      api,
+      dataSource: DDBDataSource,
+      code: appsync.Code.fromAsset('src/mutations/createItem.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+    });
+    
     new appsync.Resolver(this, 'pipeline-resolver-create-item', {
       api,
       typeName: 'Mutation',
@@ -326,15 +278,6 @@ export class CdkImsProjectStack extends cdk.Stack {
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_item],
     });
-
-    // new appsync.Resolver(this, 'pipeline-resolver-create-order', {
-    //   api,
-    //   typeName: 'Mutation',
-    //   fieldName: 'createOrder',
-    //   code: appsync.Code.fromAsset('src/pipeline/createOrder.js'),
-    //   runtime: appsync.FunctionRuntime.JS_1_0_0,
-    //   pipelineConfig: [add_order],
-    // });
 
   }
 }

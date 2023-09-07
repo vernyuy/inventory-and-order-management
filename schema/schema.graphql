@@ -50,7 +50,7 @@ type Order {
 type Query {
 
   users: [User]!
-    @aws_api_key @aws_cognito_user_pools
+    @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
 
   items: [Item]!
     @aws_api_key @aws_cognito_user_pools
@@ -59,18 +59,18 @@ type Query {
     @aws_api_key @aws_cognito_user_pools
 
   orders: [Order]!
-    @aws_api_key @aws_cognito_user_pools
+    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
   order(id: ID!): Order
-    @aws_api_key @aws_cognito_user_pools
+    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
   inventories: [Inventory]!
-    @aws_api_key @aws_cognito_user_pools
+    #@aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
   inventory(id: ID!): Inventory
     @aws_api_key @aws_cognito_user_pools
 
-  getUserInventories(id: ID!): User @aws_apikey
+  getUserInventories(id: ID!): User @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 }
 
 input CreateUser {
@@ -108,23 +108,32 @@ input CreateInventory {
 
 type Mutation {
   createUser(input: CreateUser!): User
-    @aws_api_key @aws_cognito_user_pools
+    @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
 
   createItem(input: CreateItem!): Item
+    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
   updateItem(input: UpdateItem!): Item
-    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
   deleteItem(id: ID!): Item
     @aws_cognito_user_pools(cognito_groups: ["admin"])
 
   createOrder(input: CreateOrder!): Order
+    @aws_cognito_user_pools(cognito_groups: ["user"])
 
   # updateOrder(id: ID!, userId: ID!, itemLines: [ItemLine]): Order!
   # deleteOrder(id: ID!): Order!
 
   createInventory(input: CreateInventory): Inventory!
-    @aws_api_key @aws_cognito_user_pools
+    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
+
   # updateInventory(input: CreateInventory): Inventory!
   # deleteInventory(id: ID!): Inventory!
+}
+
+type Subscription {
+  createUser: User
+  createItem: Item
+  updateItem: Item
 }
