@@ -71,6 +71,9 @@ type Query {
     @aws_api_key @aws_cognito_user_pools
 
   getUserInventories(id: ID!): User @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+
+  getInventoryItems(id: ID!): Item 
+  
 }
 
 input CreateUser {

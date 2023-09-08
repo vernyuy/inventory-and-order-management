@@ -4,12 +4,76 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 import { join } from 'path'
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambda from 'aws-cdk-lib/aws-lambda'
+import * as stepfunctions from "aws-cdk-lib/aws-stepfunctions";
+import * as fs from 'fs'
+import * as iam from 'aws-cdk-lib/aws-iam'
+import { BillingMode } from "aws-cdk-lib/aws-dynamodb";
+import * as apigateway from "aws-cdk-lib/aws-apigateway"
 
 export class CdkImsProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+///////////////////////////////////////////////////////////////////
 
+
+    const file = fs.readFileSync('./hello.json.asl', 'utf-8');
+    const  cdfnStepFunction = new stepfunctions.CfnStateMachine(this, 'stepMachine',
+    {
+      roleArn: new iam.Role(this, 'StepFunctionRole', {
+        assumedBy: new iam.ServicePrincipal('states.amazonaws.com'),
+        managedPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
+          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole')
+        ]
+      }).roleArn,
+      definition: file.toString()
+    })
+
+    const table = new dynamodb.Table(this, "OrdersTable", {
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      partitionKey: {
+        name: "id",
+        type: dynamodb.AttributeType.STRING
+      },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      tableName: "OrdersTable",
+      timeToLiveAttribute: "ttl",
+    });
+
+    /// Create a step function
+    const stepFuncStarter = new lambda.Function(this, "StepFuncHandler", {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("./src"),
+      handler: "index.handler",
+      timeout: cdk.Duration.seconds(10),
+      environment: {
+        TABLE_NAME: table.tableName,
+        PRIMARY_KEY:'id',
+        STEPFUNCTION_ARN: cdfnStepFunction.attrArn
+      },
+    });
+    table.grantReadWriteData(stepFuncStarter);
+    stepFuncStarter.addToRolePolicy(new iam.PolicyStatement({
+      actions: ["states:StartExecution"],
+      resources: [cdfnStepFunction.attrArn]
+    }));
+
+    //create a api gateway
+    const api1 = new apigateway.RestApi(this, "StepFuncApi", {
+      restApiName: "StepFuncApi",
+      description: "StepFuncApi",
+      endpointTypes: [apigateway.EndpointType.REGIONAL]
+    });
+
+    //add api gateway resource
+    const resource = api1.root.addResource("orders");
+    const stepFuncIntegration = new apigateway.LambdaIntegration(stepFuncStarter);
+    resource.addMethod("POST", stepFuncIntegration);
+
+
+///////////////////////////////////////////////////////////////////
     // cognito pool
 
     const userPool  =  new cognito.UserPool(this, 'ims-project',{
@@ -53,54 +117,66 @@ export class CdkImsProjectStack extends cdk.Stack {
       }
     });
 
-    //creates a DDB table
-    // const user_table = new dynamodb.Table(this, 'user-table', {
-    //   partitionKey: {
-    //     name: 'id',
-    //     type: dynamodb.AttributeType.STRING,
-    //   },
-    //   removalPolicy: cdk.RemovalPolicy.DESTROY,
-    //   // sortKey:{
-    //   //   name: 'role',
-    //   //   type: dynamodb.AttributeType.STRING
-    //   // }
-    // });
+    /////           DDB Table
 
     const test_table = new dynamodb.Table(this, 'test-table', {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING,},
       sortKey: {type: dynamodb.AttributeType.STRING, name:'sk' },
+      
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
 
-    // const items_table = new dynamodb.Table(this, 'items-table', {
-    //   partitionKey: {
-    //     name: 'id',
-    //     type: dynamodb.AttributeType.STRING,
-    //   },
-    // });
+    const globalSecondaryIndexProps: dynamodb.GlobalSecondaryIndexProps = {
+      indexName: 'GSI1',
+      partitionKey: {
+        name: 'GSI1PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI1SK',
+        type: dynamodb.AttributeType.STRING,
+      },
+    }; 
 
-    // const orders_table = new dynamodb.Table(this, 'orders-table', {
-    //   partitionKey: {
-    //     name: 'id',
-    //     type: dynamodb.AttributeType.STRING,
-    //   },
-    // });
-
-    // const inventory_table = new dynamodb.Table(this, 'inventory-table', {
-    //   partitionKey: {
-    //     name: 'id',
-    //     type: dynamodb.AttributeType.STRING,
-    //   },
-    //   removalPolicy: cdk.RemovalPolicy.DESTROY,
-    // });
+    test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps);
 
     const DDBDataSource = api.addDynamoDbDataSource(
 			'DDBDataSource',
 			test_table
 		)
+
+    
     // Creates a function for query
 
 
+    const addItemToCartFn = new lambda.Function(this, 'add_item_to_cart', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      code: lambda.Code.fromAsset('src'),
+      handler: 'addItemToCart.handler',
+      environment:{
+        'TABLE_NAME': test_table.tableName,
+      }
+    })
+
+    const LambdaDatatSource = api.addLambdaDataSource(
+      'addItemToCart-datasource',
+      addItemToCartFn
+    )
+
+    const addCart = new appsync.AppsyncFunction(
+      this,
+      'addToCart',
+      {
+        name: 'addItemToCart',
+        api,
+        dataSource: LambdaDatatSource,
+        code: appsync.Code.fromAsset('src/lambdas/addItemToCart.ts')
+      }
+    )
+
+    /// Lambda permisions to access dynamodb table
+
+    test_table.grantWriteData(addItemToCartFn)
 
     /**
      * Get Users Inventory details
@@ -112,8 +188,8 @@ export class CdkImsProjectStack extends cdk.Stack {
 				name: 'getUserInventoriesFunc',
 				api,
 				dataSource: DDBDataSource,
-				code: appsync.Code.fromAsset(
-					join(__dirname, '/getUserInventories.js')
+				code: appsync.Code.fromAsset('src/pipeline/getUserInventories.js'
+					// join(__dirname, '/getUserInventories.js')
 				),
 				runtime: appsync.FunctionRuntime.JS_1_0_0,
 			}
@@ -208,6 +284,29 @@ export class CdkImsProjectStack extends cdk.Stack {
       pipelineConfig: [get_items],
       code: passthrough
     });
+
+
+    /**
+     * Get inventory Items
+     */
+
+    const get_inentory_items = new appsync.AppsyncFunction(this, 'get-inventory-items', {
+      name: 'inventory_items_func',
+      api,
+      dataSource: DDBDataSource,
+      code: appsync.Code.fromAsset('src/pipeline/getInventoryItems.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+    });
+
+    new appsync.Resolver(this, 'pipeline-resolver-get-inventory-items', {
+      api,
+      typeName: 'Query',
+      fieldName: 'getInventoryItems',
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [get_inentory_items],
+      code: passthrough
+    });
+
   ///////////////////////////////////////////////////////////////////////////////////////////////
 /**
  *  The Blog below is the set to run Mutations in our system
