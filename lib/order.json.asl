@@ -4,7 +4,26 @@
     "States": {
         "Place order":{
             "Comment": " Place an order on cart Items",
-            "Type": "Pass",
+            
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "OutputPath": "$.Payload",
+            "Parameters": {
+              "Payload.$": "$"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 6,
+                "BackoffRate": 2
+              }
+            ],
             "Next": "OrderItemAvailable"
         },
         "OrderItemAvailable":{
@@ -14,7 +33,7 @@
                 {
                     "Variable": "$.itemAvailable",
                     "BooleanEquals": true,
-                    "Next": "Yes"
+                    "Next": "Payment"
                 },
                 {
                     "Variable": "$.itemAvailable",
@@ -22,20 +41,32 @@
                     "Next": "No"
                 }
             ],
-            "Default": "Yes"
-        },
-        "Yes":{
-            "Type": "Pass",
-            "Next": "Payment"
+            "Default": "Payment"
         },
         "No": {
             "Type": "Fail",
             "Cause": "Requested Items are out of stock"
         },
         "Payment": {
-            "Comment": "User makes payment",
-            "Type": "Wait",
-            "Seconds": 5,
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "OutputPath": "$.Payload",
+            "Parameters": {
+              "Payload.$": "$"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 6,
+                "BackoffRate": 2
+              }
+            ],
             "Next": "Payment Success"
         },
         "Payment Success":{
@@ -57,23 +88,58 @@
         },
         "Success": {
             "Type": "Parallel",
-            "Next": "Ordered",
+            "Next": "Delivery",
             "Branches": [
                 {
                     "StartAt": "send email",
                     "States": {
                         "send email":{
-                            "Type": "Pass",
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::lambda:invoke",
+                            "OutputPath": "$.Payload",
+                            "Parameters": {
+                              "Payload.$": "$"
+                            },
+                            "Retry": [
+                              {
+                                "ErrorEquals": [
+                                  "Lambda.ServiceException",
+                                  "Lambda.AWSLambdaException",
+                                  "Lambda.SdkClientException",
+                                  "Lambda.TooManyRequestsException"
+                                ],
+                                "IntervalSeconds": 2,
+                                "MaxAttempts": 6,
+                                "BackoffRate": 2
+                              }
+                            ],
                             "End": true
                         }
                     }
                 },
                 {
-                    "StartAt": "Delivery",
+                    "StartAt": "Process Order",
                     "States": {
-                        "Delivery":{
-                            "Type": "Wait",
-                            "Seconds": 20,
+                        "Process Order":{
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::lambda:invoke",
+                            "OutputPath": "$.Payload",
+                            "Parameters": {
+                              "Payload.$": "$"
+                            },
+                            "Retry": [
+                              {
+                                "ErrorEquals": [
+                                  "Lambda.ServiceException",
+                                  "Lambda.AWSLambdaException",
+                                  "Lambda.SdkClientException",
+                                  "Lambda.TooManyRequestsException"
+                                ],
+                                "IntervalSeconds": 2,
+                                "MaxAttempts": 6,
+                                "BackoffRate": 2
+                              }
+                            ],
                             "End": true
                         }
                     }
@@ -84,8 +150,9 @@
             "Type": "Fail",
             "Cause": "Payment failed"
         },
-        "Ordered":{
-            "Type": "Pass",
+        "Delivery":{
+            "Type": "Wait",
+            "Seconds": 20,
             "End": true
         }
         

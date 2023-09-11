@@ -10,70 +10,25 @@ import * as stepfunctions from "aws-cdk-lib/aws-stepfunctions";
 import * as fs from 'fs'
 import * as iam from 'aws-cdk-lib/aws-iam'
 import { BillingMode } from "aws-cdk-lib/aws-dynamodb";
-import * as apigateway from "aws-cdk-lib/aws-apigateway"
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import path = require('path');
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
+
+
+// declare const function_: lambda.Function;
+// declare const graphqlApi_ : appsync.GraphqlApi
+// declare const role: iam.Role
+
+
 
 export class CdkImsProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-///////////////////////////////////////////////////////////////////
 
 
-    const file = fs.readFileSync('./hello.json.asl', 'utf-8');
-    const  cdfnStepFunction = new stepfunctions.CfnStateMachine(this, 'stepMachine',
-    {
-      roleArn: new iam.Role(this, 'StepFunctionRole', {
-        assumedBy: new iam.ServicePrincipal('states.amazonaws.com'),
-        managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
-          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaVPCAccessExecutionRole')
-        ]
-      }).roleArn,
-      definition: file.toString()
-    })
-
-    const table = new dynamodb.Table(this, "OrdersTable", {
-      billingMode: BillingMode.PAY_PER_REQUEST,
-      partitionKey: {
-        name: "id",
-        type: dynamodb.AttributeType.STRING
-      },
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      tableName: "OrdersTable",
-      timeToLiveAttribute: "ttl",
-    });
-
-    /// Create a step function
-    const stepFuncStarter = new lambda.Function(this, "StepFuncHandler", {
-      runtime: lambda.Runtime.NODEJS_14_X,
-      code: lambda.Code.fromAsset("./src"),
-      handler: "index.handler",
-      timeout: cdk.Duration.seconds(10),
-      environment: {
-        TABLE_NAME: table.tableName,
-        PRIMARY_KEY:'id',
-        STEPFUNCTION_ARN: cdfnStepFunction.attrArn
-      },
-    });
-    table.grantReadWriteData(stepFuncStarter);
-    stepFuncStarter.addToRolePolicy(new iam.PolicyStatement({
-      actions: ["states:StartExecution"],
-      resources: [cdfnStepFunction.attrArn]
-    }));
-
-    //create a api gateway
-    const api1 = new apigateway.RestApi(this, "StepFuncApi", {
-      restApiName: "StepFuncApi",
-      description: "StepFuncApi",
-      endpointTypes: [apigateway.EndpointType.REGIONAL]
-    });
-
-    //add api gateway resource
-    const resource = api1.root.addResource("orders");
-    const stepFuncIntegration = new apigateway.LambdaIntegration(stepFuncStarter);
-    resource.addMethod("POST", stepFuncIntegration);
 
 
-///////////////////////////////////////////////////////////////////
     // cognito pool
 
     const userPool  =  new cognito.UserPool(this, 'ims-project',{
@@ -114,7 +69,12 @@ export class CdkImsProjectStack extends cdk.Stack {
             userPool
           }
         }]
-      }
+      },
+      xrayEnabled: true,
+			logConfig: {
+				excludeVerboseContent: false,
+				fieldLogLevel: appsync.FieldLogLevel.ALL,
+			},
     });
 
     /////           DDB Table
@@ -145,38 +105,125 @@ export class CdkImsProjectStack extends cdk.Stack {
 			test_table
 		)
 
+
+    //// Dynamodb table to register orders
+
+    const orders_table = new dynamodb.Table(this, 'order-table', {
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING,},
+      sortKey: {type: dynamodb.AttributeType.STRING, name:'sk' },
+      
+      stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
+      removalPolicy: cdk.RemovalPolicy.DESTROY
+    });
+
+    const globalSecondaryIndexOrderProps: dynamodb.GlobalSecondaryIndexProps = {
+      indexName: 'GSI1',
+      partitionKey: {
+        name: 'GSI1PK',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI1SK',
+        type: dynamodb.AttributeType.STRING,
+      },
+    }; 
     
-    // Creates a function for query
+    orders_table.addGlobalSecondaryIndex(globalSecondaryIndexOrderProps)
+
+    const OrdersDS = api.addDynamoDbDataSource(
+			'Order_data_source',
+			orders_table
+		)
 
 
-    const addItemToCartFn = new lambda.Function(this, 'add_item_to_cart', {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      code: lambda.Code.fromAsset('src'),
-      handler: 'addItemToCart.handler',
-      environment:{
-        'TABLE_NAME': test_table.tableName,
-      }
-    })
+///////////////////////////////////////////////////////////////////
 
-    const LambdaDatatSource = api.addLambdaDataSource(
-      'addItemToCart-datasource',
-      addItemToCartFn
-    )
+const queue = new sqs.Queue(this, 'mainQueue',{
+  visibilityTimeout: cdk.Duration.seconds(300),
+  queueName: 'mainQueue.fifo',
+  fifo: true,
+  removalPolicy: cdk.RemovalPolicy.DESTROY
+})
 
-    const addCart = new appsync.AppsyncFunction(
-      this,
-      'addToCart',
-      {
-        name: 'addItemToCart',
-        api,
-        dataSource: LambdaDatatSource,
-        code: appsync.Code.fromAsset('src/lambdas/addItemToCart.ts')
-      }
-    )
+const queueConsumer = new lambda.Function(this, 'consumerFunction', {
+  handler: 'queueConsumer.lambdaHandler',
+  runtime: lambda.Runtime.NODEJS_14_X,
+  code: lambda.Code.fromAsset('src'),
+  environment: {
+    'TABLE_NAME': orders_table.tableName,
+    'QUEUE_URL': queue.queueName
+  },
+});
 
-    /// Lambda permisions to access dynamodb table
 
-    test_table.grantWriteData(addItemToCartFn)
+const streamConsumer = new lambda.Function(this, 'streamConsumer', {
+  handler: 'streamConsumer.lambdaHandler',
+  runtime: lambda.Runtime.NODEJS_14_X,
+  code: lambda.Code.fromAsset('src'),
+  environment: {
+    'TABLE_NAME': orders_table.tableName,
+    'QUEUE_URL': queue.queueName
+  },
+  role: queueConsumer.role,
+});
+
+
+const process_order = new lambda.Function(this, 'processOrder', {
+  handler: 'placeOrder.lambdaHandler',
+  runtime: lambda.Runtime.NODEJS_18_X,
+  code: lambda.Code.fromAsset('src'),
+  environment: {
+    'TABLE_NAME': orders_table.tableName,
+    'QUEUE_URL': queue.queueName
+  },
+  role: queueConsumer.role,
+})
+
+orders_table.grantStreamRead(streamConsumer)
+orders_table.grantStreamRead(process_order)
+///////////////////////////////////////////////////////////////////
+    /**
+     * Add Item to cart
+     * 
+     */
+    const add_item_to_cart1 = new appsync.AppsyncFunction(this, 'add_item_to_cart1', {
+      name: 'add_item_to_Cart1',
+      api,
+      dataSource: OrdersDS,
+      code: appsync.Code.fromAsset('src/mutations/addItemToCart.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+    });
+
+    new appsync.Resolver(this, 'pipeline-resolver-add-item-to-cart', {
+      api,
+      typeName: 'Mutation',
+      fieldName: 'addItemToCart',
+      code: appsync.Code.fromAsset('src/pipeline/addItemToCart.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [add_item_to_cart1],
+    });
+
+
+    /**
+     * Place order
+     * 
+     */
+    const place_order = new appsync.AppsyncFunction(this, 'place_order', {
+      name: 'place_order',
+      api,
+      dataSource: OrdersDS,
+      code: appsync.Code.fromAsset('src/mutations/placeOrder.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+    });
+
+    new appsync.Resolver(this, 'pipeline-resolver-place_order', {
+      api,
+      typeName: 'Mutation',
+      fieldName: 'placeOrder',
+      code: appsync.Code.fromAsset('src/pipeline/addItemToCart.js'),
+      runtime: appsync.FunctionRuntime.JS_1_0_0,
+      pipelineConfig: [place_order],
+    });
 
     /**
      * Get Users Inventory details

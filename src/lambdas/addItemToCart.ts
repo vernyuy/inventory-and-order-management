@@ -4,7 +4,9 @@ const ddb = new AWS.DynamoDB.DocumentClient();
 
 export function handler(event: any, context: any, callback: any) {
     const method = event.httpMethod;
+    console.log("Context:::::  ",event)
     const resource = event.resource;
+    console.log("Event:::::  ",event)
     if(method === "POST" && resource ==='/cart/add'){
         return addProductToCart(event);
     }else{
@@ -22,11 +24,12 @@ async function addProductToCart(event: any){
     const params = {
         TableName: tableName,
         "Item": {
-            "id": body.userId,
-            "sk": `ITEM#${body.productId}`,
-            "productId": body.productId,
-            "userId": body.userId,
+            "id": body.user,
+            "sk": `ITEM#${body.item}`,
+            "productId": body.item,
+            "userId": body.user,
             "quantity": body.quantity,
+            "price": body.unit_price*body.quantity,
             "addedDate": Date.now().toString(),
             "cartProductStatus": "PENDING",
             }

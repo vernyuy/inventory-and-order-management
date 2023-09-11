@@ -109,6 +109,21 @@ input CreateInventory {
   employee: ID!
 }
 
+input AddItemToCart {
+  item: ID!
+  user: ID!
+  quantity: Int!
+  unit_price: Float!
+  createAt: AWSDateTime
+}
+
+input PlaceOrderInput {
+  user: ID!
+  quantity: Int!
+  total_price: Float!
+  createAt: AWSDateTime
+}
+
 type Mutation {
   createUser(input: CreateUser!): User
     @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
@@ -130,6 +145,12 @@ type Mutation {
 
   createInventory(input: CreateInventory): Inventory!
     @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
+
+  addItemToCart(input: AddItemToCart): Item!
+
+  addItemToCart1(input: AddItemToCart): Item!
+
+  placeOrder(input: PlaceOrderInput): Item!
 
   # updateInventory(input: CreateInventory): Inventory!
   # deleteInventory(id: ID!): Inventory!
