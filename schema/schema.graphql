@@ -1,4 +1,3 @@
-
 enum TYPE {
   ADMIN
   EMPLOYEE
@@ -18,7 +17,6 @@ type User @aws_api_key @aws_cognito_user_pools {
   inventory: [Inventory]
   test: String
 }
-
 
 type Inventory {
   id: ID!
@@ -44,64 +42,59 @@ type Order {
   id: ID!
   sk: ID
   items: [Item!]
-  totalPrice: Float!
-  status: String!
+  total_price: Float
+  orderStatus: String
+  total_qauntity: Int
 }
 type Query {
+  users: [User]! @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  users: [User]!
-    @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
+  items: [Item]! @aws_api_key @aws_cognito_user_pools
 
-  items: [Item]!
-    @aws_api_key @aws_cognito_user_pools
+  item(id: ID!): Item @aws_api_key @aws_cognito_user_pools
 
-  item(id: ID!): Item
-    @aws_api_key @aws_cognito_user_pools
-
-  orders: [Order]!
-    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+  orders: [Order]! @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
   order(id: ID!): Order
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
   inventories: [Inventory]!
-    #@aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+  #@aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  inventory(id: ID!): Inventory
-    @aws_api_key @aws_cognito_user_pools
+  inventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
 
-  getUserInventories(id: ID!): User @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+  getUserInventories(id: ID!): User
+    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  getInventoryItems(id: ID!): Item 
-  
+  getInventoryItems(id: ID!): Item
 }
 
 input CreateUser {
-    name: String!
-    email: String!
+  name: String!
+  email: String!
 }
 
 input CreateItem {
-    name: String!,
-    description: String!
-    quantity_in_stock: Int!
-    images: String
-    inventoryId: ID!
-    employeeId: ID!
-    orderId: ID
+  name: String!
+  description: String!
+  quantity_in_stock: Int!
+  images: String
+  inventoryId: ID!
+  employeeId: ID!
+  orderId: ID
 }
 
 input UpdateItem {
-    id: ID!,
-    name: String,
-    description: String,
-    price: Float,
-    quantity: Int,
+  id: ID!
+  name: String
+  description: String
+  price: Float
+  quantity: Int
 }
 
 input CreateOrder {
-    totalPrice: Float
-    status: String
+  totalPrice: Float
+  status: String
 }
 
 input CreateInventory {
@@ -126,7 +119,8 @@ input PlaceOrderInput {
 
 type Mutation {
   createUser(input: CreateUser!): User
-    @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin"])
 
   createItem(input: CreateItem!): Item
     @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
@@ -134,8 +128,7 @@ type Mutation {
   updateItem(input: UpdateItem!): Item
     @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
-  deleteItem(id: ID!): Item
-    @aws_cognito_user_pools(cognito_groups: ["admin"])
+  deleteItem(id: ID!): Item @aws_cognito_user_pools(cognito_groups: ["admin"])
 
   createOrder(input: CreateOrder!): Order
     @aws_cognito_user_pools(cognito_groups: ["user"])

@@ -1,45 +1,60 @@
 import { DynamoDBStreamEvent } from "aws-lambda";
-import * as AWS from 'aws-sdk'
-import { Queue } from 'aws-cdk-lib/aws-sqs'
+import * as AWS from "aws-sdk";
+import { Queue } from "aws-cdk-lib/aws-sqs";
 
 const sqs = new AWS.SQS();
-export async function main(event:any): Promise<DynamoDBStreamEvent>{
-    console.log(event)
-    console.log(JSON.stringify(
-        event.Records[0].dynamodb.NewImage.orderStatus.S
-    ))
-    const orderItems = event.Records[0].dynamodb.NewImage.orderItems.L
-    const userId = event.Records[0].dynamodb.NewImage.userId.S
-    console.log(orderItems)
-    const tableName = event.Records[0].eventSourceARN.split('/')[1]
-    try{
 
-        for (let index = 0; index < orderItems.length; index++) {
-            const element = orderItems[index].M.productId;
-            console.log(element)
-            const params = {
-                TableName: tableName,
-                Key: {
-                    pk: `USER#${userId}`,
-                    sk: `PRODUCT#${element.S}`
-                },
-                UpdateExpression: 'set cartProdcutStatus = :status',
-                ExpressionAttributeValues: {
-                    ':status':  "ORDERED",
-                },
-                ReturnValues: "UPDATED_NEW"
+const tableName = process.env.TABLE_NAME as string;
+export async function main(event: any): Promise<DynamoDBStreamEvent> {
+  console.log(event);
+  const e = event.Records.length - 1;
+  if (
+    event.Records[e].eventName === "MODIFY" &&
+    event.Records[e].dynamodb?.NewImage?.sk.S?.slice(0, 6) === "ORDER#"
+  ) {
+    console.log("Ready to enter the Queue");
+    const orderItems = event.Records[e].dynamodb?.NewImage?.orderItems?.L;
+    const userId = event.Records[e].dynamodb?.NewImage?.id.S;
+    console.log(orderItems);
+    try {
+      for (let index = 0; index < orderItems.length; index++) {
+        const element = orderItems[index]?.M?.sk;
+        console.log(element);
+        const params = {
+          TableName: tableName,
+          Key: {
+            id: `${userId}`,
+            sk: `${element?.S}`,
+          },
+          UpdateExpression: "set cartProductStatus = :status",
+          ExpressionAttributeValues: {
+            ":status": "ORDERED",
+          },
+          ReturnValues: "UPDATED_NEW",
+        };
+        console.log(params);
+        console.log(process.env.QUEUE_URL);
+        const test = await sqs
+          .sendMessage(
+            {
+              QueueUrl: process.env.QUEUE_URL as string,
+              MessageBody: JSON.stringify(params),
+              MessageGroupId: userId,
+              MessageDeduplicationId: element.S,
+            },
+            function (err, data) {
+              if (err) {
+                console.log("Error:::: ", err);
+              } else {
+                console.log("Hii ::::::   ", data);
+              }
             }
-            console.log(params)
-             sqs.sendMessage(
-                {
-                    QueueUrl: process.env.QUEUE_URL as string,
-                    MessageBody: JSON.stringify(params)
-                })}
-             
-            
-    }catch(err){
-        console.log(err)
+          )
+          .promise();
+      }
+    } catch (err) {
+      console.log(err);
     }
-
-    return event
+  }
+  return event;
 }
