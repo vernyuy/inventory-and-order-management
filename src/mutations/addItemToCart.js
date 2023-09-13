@@ -1,13 +1,19 @@
+import { util } from "@aws-appsync/utils";
+import { put } from "@aws-appsync/utils/dynamodb";
+
 export function request(ctx) {
-  return {
-    operation: "PutItem",
-    key: util.dynamodb.toMapValues({
-      id: ctx.args.input.user,
-      sk: "ITEM#" + ctx.args.input.item,
-      cartProductStatus: "PENDING",
-    }),
-    attributeValues: util.dynamodb.toMapValues(ctx.args.input),
+  const key = {
+    id: ctx.args.input.user,
+    sk: "ITEM#" + ctx.args.input.item,
   };
+
+  const item = { ...ctx.args.input };
+  item.cartProductStatus = "PENDING";
+  item.AddedOn = util.time.nowEpochMilliSeconds();
+  return put({
+    key,
+    item,
+  });
 }
 
 export function response(ctx) {

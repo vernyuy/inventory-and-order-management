@@ -6,15 +6,26 @@ import { Construct } from "constructs";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+// import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import {
   DynamoEventSource,
   SqsEventSource,
 } from "aws-cdk-lib/aws-lambda-event-sources";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { SqsDestination } from "aws-cdk-lib/aws-lambda-destinations";
 
 export class CdkImsProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Enabling power tools for typescript
+    const powertoolsLayer = lambda.LayerVersion.fromLayerVersionArn(
+      this,
+      "PowertoolsLayer",
+      `arn:aws:lambda:${
+        cdk.Stack.of(this).region
+      }:094274105915:layer:AWSLambdaPowertoolsTypeScript:18`
+    );
 
     // cognito pool
 
@@ -35,13 +46,13 @@ export class CdkImsProjectStack extends cdk.Stack {
       },
     });
 
-    const userPoolClient = new cognito.UserPoolClient(
-      this,
-      "imsUserPoolClient",
-      {
-        userPool,
-      }
-    );
+    // const userPoolClient = new cognito.UserPoolClient(
+    //   this,
+    //   "imsUserPoolClient",
+    //   {
+    //     userPool,
+    //   }
+    // );
 
     // GraphQL API
     const api = new appsync.GraphqlApi(this, "ims-apis", {
@@ -138,7 +149,7 @@ export class CdkImsProjectStack extends cdk.Stack {
 
     const dlq = new sqs.Queue(this, "dlq");
 
-    /// Lambda to consume sqs messages
+    /// Lambda to consume sqs messages  //////////////////////////////////
     const queueConsumer = new lambda.Function(this, "consumerFunction", {
       handler: "queueConsumer.main",
       runtime: lambda.Runtime.NODEJS_14_X,
@@ -148,8 +159,15 @@ export class CdkImsProjectStack extends cdk.Stack {
         QUEUE_NAME: queue.queueName,
         QUEUE_URL: queue.queueUrl,
       },
+      layers: [powertoolsLayer],
       onFailure: new SqsDestination(dlq),
     });
+
+    queue.grantConsumeMessages(queueConsumer);
+
+    queueConsumer.addEventSource(new SqsEventSource(queue));
+
+    /////////////////////////////////////////////////////////////////////
 
     //  Lambda to consume dynamodb streams
     const streamConsumer = new lambda.Function(this, "streamConsumer", {
@@ -161,8 +179,15 @@ export class CdkImsProjectStack extends cdk.Stack {
         QUEUE_NAME: queue.queueName,
         QUEUE_URL: queue.queueUrl,
       },
+      layers: [powertoolsLayer],
       role: queueConsumer.role,
     });
+
+    streamConsumer.addEventSource(
+      new DynamoEventSource(orders_table, {
+        startingPosition: lambda.StartingPosition.LATEST,
+      })
+    );
 
     /// Lambda to process orders
     const process_order = new lambda.Function(this, "processOrder", {
@@ -174,6 +199,7 @@ export class CdkImsProjectStack extends cdk.Stack {
         QUEUE_NAME: queue.queueName,
         QUEUE_URL: queue.queueUrl,
       },
+      layers: [powertoolsLayer],
     });
 
     // Adding dynamodb event to invoke lambda function to process orders
@@ -184,15 +210,6 @@ export class CdkImsProjectStack extends cdk.Stack {
     );
 
     /// Adding queue envent source to lambda.
-    queue.grantConsumeMessages(queueConsumer);
-
-    queueConsumer.addEventSource(new SqsEventSource(queue));
-
-    streamConsumer.addEventSource(
-      new DynamoEventSource(orders_table, {
-        startingPosition: lambda.StartingPosition.LATEST,
-      })
-    );
 
     // process_order.addEventSource
 
@@ -213,7 +230,9 @@ export class CdkImsProjectStack extends cdk.Stack {
       environment: {
         TABLE_NAME: orders_table.tableName,
         USER_TABLE: test_table.tableName,
+        REGION: cdk.Stack.of(this).region,
       },
+      layers: [powertoolsLayer],
     });
 
     orders_table.grantWriteData(webhook);
@@ -223,11 +242,40 @@ export class CdkImsProjectStack extends cdk.Stack {
     const webhook_api = stripe_api.root.addResource("webhook");
     webhook_api.addMethod("POST", new apigateway.LambdaIntegration(webhook));
 
+    webhook.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "ses:SendEmail",
+          "ses:SendRawEmail",
+          "ses:SendTemplatedEmail",
+        ],
+        resources: [
+          `arn:aws:ses:${cdk.Stack.of(this).region}:${
+            cdk.Stack.of(this).account
+          }:identity/venyuyestelle@gmail.com`,
+        ],
+      })
+    );
+
     ////////////////////////
     /**
      * Add Item to cart
      *
      */
+
+    const passthrough = appsync.InlineCode.fromInline(`
+        // The before step
+        export function request(...args) {
+          console.log(args);
+          return {}
+        }
+
+        // The after step
+        export function response(ctx) {
+          return ctx.prev.result
+        }
+    `);
     const add_item_to_cart1 = new appsync.AppsyncFunction(
       this,
       "add_item_to_cart1",
@@ -244,7 +292,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       api,
       typeName: "Mutation",
       fieldName: "addItemToCart",
-      code: appsync.Code.fromAsset("src/pipeline/addItemToCart.js"),
+      code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_item_to_cart1],
     });
@@ -265,7 +313,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       api,
       typeName: "Mutation",
       fieldName: "placeOrder",
-      code: appsync.Code.fromAsset("src/pipeline/addItemToCart.js"),
+      code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [place_order],
     });
@@ -287,19 +335,6 @@ export class CdkImsProjectStack extends cdk.Stack {
         runtime: appsync.FunctionRuntime.JS_1_0_0,
       }
     );
-
-    const passthrough = appsync.InlineCode.fromInline(`
-        // The before step
-        export function request(...args) {
-          console.log(args);
-          return {}
-        }
-
-        // The after step
-        export function response(ctx) {
-          return ctx.prev.result
-        }
-    `);
 
     new appsync.Resolver(this, "getUserInventoriesRes", {
       api,
@@ -407,7 +442,6 @@ export class CdkImsProjectStack extends cdk.Stack {
      *
      *
      */
-    // Creates a function for mutation
 
     /**
      * Create user
@@ -417,7 +451,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       name: "add_employee",
       api,
       dataSource: api.addDynamoDbDataSource("table-for-posts-2", test_table),
-      code: appsync.Code.fromAsset("src/mutations/createEmployee.js"),
+      code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
@@ -425,7 +459,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       api,
       typeName: "Mutation",
       fieldName: "createUser",
-      code: appsync.Code.fromAsset("src/pipeline/createEmployee.js"),
+      code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_emp],
     });
@@ -453,7 +487,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       api,
       typeName: "Mutation",
       fieldName: "createInventory",
-      code: appsync.Code.fromAsset("src/pipeline/createInventory.js"),
+      code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_inventory],
     });
@@ -474,7 +508,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       api,
       typeName: "Mutation",
       fieldName: "createItem",
-      code: appsync.Code.fromAsset("src/pipeline/createItem.js"),
+      code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_item],
     });

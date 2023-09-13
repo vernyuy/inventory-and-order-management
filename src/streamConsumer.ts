@@ -1,6 +1,5 @@
 import { DynamoDBStreamEvent } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { Queue } from "aws-cdk-lib/aws-sqs";
 
 const sqs = new AWS.SQS();
 
@@ -26,9 +25,11 @@ export async function main(event: any): Promise<DynamoDBStreamEvent> {
             id: `${userId}`,
             sk: `${element?.S}`,
           },
-          UpdateExpression: "set cartProductStatus = :status",
+          UpdateExpression:
+            "set cartProductStatus = :status, UpdateOn = :Updated",
           ExpressionAttributeValues: {
             ":status": "ORDERED",
+            ":Updated": Date.now().toString(),
           },
           ReturnValues: "UPDATED_NEW",
         };
@@ -45,9 +46,8 @@ export async function main(event: any): Promise<DynamoDBStreamEvent> {
             function (err, data) {
               if (err) {
                 console.log("Error:::: ", err);
-              } else {
-                console.log("Hii ::::::   ", data);
               }
+              console.log(data);
             }
           )
           .promise();

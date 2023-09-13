@@ -1,12 +1,12 @@
 import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
+  // APIGatewayProxyEvent,
+  // APIGatewayProxyResult,
   DynamoDBStreamEvent,
 } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid";
 
-const region = process.env.Region;
+// const region = process.env.Region;
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;
@@ -23,16 +23,19 @@ export async function main(
     event.Records[0].eventName === "INSERT" &&
     event.Records[0].dynamodb?.NewImage?.sk.S?.slice(0, 6) === "ORDER#"
   ) {
+    console.log("AM in");
     const id = event.Records[0].dynamodb?.NewImage?.id.S;
+    const userId = id;
     const orderId = event.Records[0].dynamodb?.NewImage?.sk.S;
-    let response: APIGatewayProxyResult;
+    // let response: APIGatewayProxyResult;
+    console.log(userId, orderId);
 
     const cartItems = await docClient
       .query({
         TableName: tableName,
         KeyConditionExpression: "id = :id AND begins_with(sk, :sk)",
         FilterExpression: "cartProductStatus = :status",
-        // ProjectionExpression: "id, sk, quantity, unit_price",
+        ProjectionExpression: "sk, quantity, unit_price",
         ExpressionAttributeValues: {
           ":id": id,
           ":sk": "ITEM#",
@@ -40,16 +43,11 @@ export async function main(
         },
       })
       .promise();
-    console.log("ITEMS:::::   ", cartItems.Items);
+    console.log("ITEMS:::::   ", cartItems);
     let total_price = 0;
-    cartItems.Items?.map((item) => {
-      const price = parseFloat(item.unit_price);
-      const qty = parseInt(item.quantity);
-      const tot = price * qty;
-      total_price = total_price + tot;
-      console.log("Quantity::   ", item.quantity);
+    cartItems.Items?.forEach((item) => {
+      total_price += parseFloat(item.unit_price) * parseInt(item.quantity);
     });
-    console.log(total_price);
     try {
       const result = await docClient
         .update({
@@ -59,32 +57,21 @@ export async function main(
             sk: orderId,
           },
           UpdateExpression:
-            "set orderItems = :orderItems orderStatus = :status ",
-          // ReturnValues: 'UPDATED_NEW',
+            "set orderItems = :orderItems, orderStatus = :status, total_items = :total_items, total_price = :total_price, UpdatedOn = :update",
           ExpressionAttributeValues: {
             ":orderItems": cartItems.Items,
             ":status": "ORDERED",
-            // ":total_items": cartItems.Items?.length,
-            // ":total_price": total_price,
+            ":total_items": cartItems.Items?.length,
+            ":total_price": total_price,
+            ":update": Date.now().toString(),
           },
         })
         .promise();
 
       console.log(result);
     } catch (err) {
-      response = {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: err,
-        }),
-      };
+      console.log(err);
     }
-    response = {
-      statusCode: 200,
-      body: JSON.stringify({
-        message: "Checked out successfully",
-      }),
-    };
   }
 
   return event;

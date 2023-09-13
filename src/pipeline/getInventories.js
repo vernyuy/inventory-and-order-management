@@ -1,15 +1,16 @@
+import { scan } from "@aws-appsync/utils/dynamodb";
+
 export function request() {
-    return {
-      operation: 'Scan',
-      filter: {
-          expression: 'begins_with(sk, :sk)',
-          expressionValues: {
-              ':sk': {'S':'INVENT#'}
-          },
-      },
+  const filter = {
+    expression: "begins_with(sk, :sk) and typeName = Inventory",
+    expressionValues: {
+      ":sk": { S: "INVENT#" },
+    },
   };
-  }
-  
-  export function response(ctx) {
-      return ctx.result.items;
-  }
+
+  return scan({ filter: filter });
+}
+
+export function response(ctx) {
+  return ctx.result.items;
+}
