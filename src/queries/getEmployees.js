@@ -7,12 +7,6 @@ export function request() {
         id: { eq: "USER" },
       })
     ),
-    // filter: {
-    //     expression: 'sk = :sk',
-    //     expressionValues: {
-    //         ':sk': {'S':'USER'}
-    //     },
-    // },
   };
 }
 
