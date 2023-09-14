@@ -1,12 +1,5 @@
-import {
-  // APIGatewayProxyEvent,
-  // APIGatewayProxyResult,
-  DynamoDBStreamEvent,
-} from "aws-lambda";
+import { DynamoDBStreamEvent } from "aws-lambda";
 import * as AWS from "aws-sdk";
-// import { v4 as uuidv4 } from "uuid";
-
-// const region = process.env.Region;
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;

@@ -35,7 +35,7 @@ export async function main(event: any): Promise<DynamoDBStreamEvent> {
         };
         console.log(params);
         console.log(process.env.QUEUE_URL);
-        const test = await sqs
+        await sqs
           .sendMessage(
             {
               QueueUrl: process.env.QUEUE_URL as string,

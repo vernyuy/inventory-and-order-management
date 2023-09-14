@@ -4,6 +4,8 @@ export function request(ctx) {
   const key = {
     id: ctx.args.input.employeeId,
     sk: "ITEM#" + util.autoId(),
+    GSKI1PK: "INVENTORY",
+    GSKI1SK: "ITEM#" + util.autoId(),
   };
   const item = { ...ctx.args.input };
   item.typeName = "Item";

@@ -9,7 +9,6 @@ export function request(ctx) {
   item.typeName = "Inventory";
   item.CreatedOn = util.time.nowEpochMilliSeconds();
   item.UpdatedOn = util.time.nowEpochMilliSeconds();
-
   return put({ key, item });
 }
 

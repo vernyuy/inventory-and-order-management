@@ -18,13 +18,16 @@ module.exports.lambdaHandler = async (
   //   console.log(body.customer_email);
   const email = body.data.object.customer_email;
 
-  // const customer = await docClient
-  //   .scan({
-  //     TableName: tableName,
-  //     FilterExpression: `email = ${email}`,
-  //   })
-  //   .promise();
-  // console.log(customer);
+  const customer = await docClient
+    .scan({
+      TableName: tableName,
+      FilterExpression: `email = :email`,
+      ExpressionAttributeValues: {
+        ":email": email,
+      },
+    })
+    .promise();
+  console.log(customer);
   // const params = {
   //     TableName: tableName,
   //     "Item": {
@@ -68,7 +71,10 @@ export type ContactDetails = {
 
 async function sendEmail({ name, email, message }: ContactDetails) {
   const ses = new AWS.SES({ region: process.env.REGION });
-  await ses.sendEmail(sendEmailParams({ name, email, message })).promise();
+  const test = await ses
+    .sendEmail(sendEmailParams({ name, email, message }))
+    .promise();
+  console.log("EMaill::  ", test);
   return JSON.stringify({
     body: { message: "Email sent successfully 🎉🎉🎉" },
     statusCode: 200,
