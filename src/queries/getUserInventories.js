@@ -1,15 +1,20 @@
 import { util } from "@aws-appsync/utils";
-// import { query } from "@aws-appsync/utils/dynamodb";
 export function request(ctx) {
   const { id } = ctx.args;
-  const query = JSON.parse(
-    util.transform.toDynamoDBConditionExpression({
-      id: { eq: id },
-      sk: { beginsWith: "USER#" },
-    })
-  );
-  // return query({ queryExpression });
-  return { operation: "Query", query };
+  // const query = JSON.parse(
+  //   util.transform.toDynamoDBConditionExpression({
+  //     id: { eq: id },
+  //   })
+  // );
+  return {
+    operation: "Query",
+    query: {
+      expression: "id = :id",
+      expressionValues: {
+        ":id": id,
+      },
+    },
+  };
 }
 
 export function response(ctx) {

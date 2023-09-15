@@ -3,7 +3,7 @@ export function request() {
   const query = JSON.parse(
     util.transform.toDynamoDBConditionExpression({
       GSI1PK: { eq: "INVENTORY" },
-      GSI1SK: { beginsWith: "ITEM#" },
+      GSI1SK: { begins_with: "ITEM#" },
     })
   );
   return { operation: "Query", query };

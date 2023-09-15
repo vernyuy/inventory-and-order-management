@@ -2,13 +2,16 @@ import { util } from "@aws-appsync/utils";
 export function request(ctx) {
   const { id } = ctx.args;
   console.log(id);
-  const query = JSON.parse(
-    util.transform.toDynamoDBConditionExpression({
-      GSI1PK: { eq: "INVENTORY#" + id },
-      GSI1SK: { beginsWith: "ITEM#" },
-    })
-  );
-  return { operation: "Query", query };
+  return {
+    operation: "Query",
+    query: {
+      expression: "GSI1PK = :GSI1PK and begins_with(GSI1SK, :GSI1SK)",
+      expressionValues: util.dynamodb.toMapValues({
+        ":GSI1PK": "INVENTORY",
+        ":GSI1SK": "ITEM#",
+      }),
+    },
+  };
 }
 
 export function response(ctx) {

@@ -55,20 +55,20 @@ type PlaceOrder {
 type Query {
   users: [User]! # @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
   items: [Item]! # @aws_api_key @aws_cognito_user_pools
-  item(id: ID!): Item # @aws_api_key @aws_cognito_user_pools
-  orders: [Order]! # @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
-  order(id: ID!): Order
+  # item(id: ID!): Item # @aws_api_key @aws_cognito_user_pools
+  # orders: [Order]! # @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+  # order(id: ID!): Order
   # @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
   inventories: [Inventory]!
   #@aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  inventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
+  # inventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
 
   getUserInventories(id: ID!): User
   # @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  getInventoryItems(id: ID!): Item
+  getInventoryItems(id: ID!): Inventory
 }
 
 input CreateUser {
@@ -126,12 +126,12 @@ type Mutation {
   createItem(input: CreateItem!): Item
   # @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
-  updateItem(input: UpdateItem!): Item
+  # updateItem(input: UpdateItem!): Item
   # @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
-  deleteItem(id: ID!): Item @aws_cognito_user_pools(cognito_groups: ["admin"])
+  # deleteItem(id: ID!): Item @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  createOrder(input: CreateOrder!): Order
+  # createOrder(input: CreateOrder!): Order
   # @aws_cognito_user_pools(cognito_groups: ["user"])
 
   # updateOrder(id: ID!, userId: ID!, itemLines: [ItemLine]): Order!
@@ -142,7 +142,7 @@ type Mutation {
 
   addItemToCart(input: AddItemToCart): Item!
 
-  addItemToCart1(input: AddItemToCart): Item!
+  # addItemToCart1(input: AddItemToCart): Item!
 
   placeOrder(input: PlaceOrderInput): PlaceOrder!
 

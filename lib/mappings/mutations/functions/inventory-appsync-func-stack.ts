@@ -36,7 +36,7 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       name: "add_employee",
       api: props.api,
       dataSource: InventoryDS,
-      code: passthrough,
+      code: appsync.Code.fromAsset("src/mutations/createEmployee.js"),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
