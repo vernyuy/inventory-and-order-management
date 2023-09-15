@@ -98,7 +98,7 @@ export class GetAppsyncFuncStack extends cdk.Stack {
       get_users_func: get_user_func,
       passthrough: passthrough,
       api: props.api,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
   }
 }

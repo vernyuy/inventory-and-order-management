@@ -8,6 +8,7 @@ import { Construct } from "constructs";
 import * as Dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as SQS from "aws-cdk-lib/aws-sqs";
 import { SqsDestination } from "aws-cdk-lib/aws-lambda-destinations";
+import { Tracing } from "aws-cdk-lib/aws-lambda";
 
 // import {CdkImsProjectStack} from '../cdk-ims-project-stack';
 
@@ -36,8 +37,8 @@ export class LambdaStack extends cdk.Stack {
         TABLE_NAME: props.ddbTable.tableName,
         QUEUE_NAME: props.queue.queueName,
         QUEUE_URL: props.queue.queueUrl,
-        // test: props.targetLambda.functionName
       },
+      tracing: Tracing.ACTIVE,
       layers: [powertoolsLayer],
       onFailure: new SqsDestination(dlq),
     });

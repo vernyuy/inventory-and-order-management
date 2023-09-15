@@ -3,6 +3,7 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import { Tracing } from "aws-cdk-lib/aws-lambda";
 
 interface StripeWebhookStackProps extends cdk.StackProps {
   orders_table: dynamodb.Table;
@@ -20,6 +21,7 @@ export class StripeWebhookStack extends cdk.Stack {
         USER_TABLE: props.inventory_table.tableName,
         REGION: cdk.Stack.of(this).region,
       },
+      tracing: Tracing.ACTIVE,
       //   layers: [powertoolsLayer],
     });
 

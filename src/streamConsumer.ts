@@ -1,20 +1,64 @@
-import { DynamoDBStreamEvent } from "aws-lambda";
+import { DynamoDBStreamEvent, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
+import { logger, metrics, tracer } from "./common/powertools";
+import { v4 as uuidv4 } from "uuid";
+import type { Subsegment } from "aws-xray-sdk-core";
 
 const sqs = new AWS.SQS();
 
 const tableName = process.env.TABLE_NAME as string;
-export async function main(event: any): Promise<DynamoDBStreamEvent> {
-  console.log(event);
-  const e = event.Records.length - 1;
+export async function main(
+  event: any,
+  context: Context
+): Promise<DynamoDBStreamEvent> {
+  logger.info("Lambda invocation event", { event });
+
+  // Metrics: Capture cold start metrics
+  metrics.captureColdStartMetric();
+
+  // Tracer: Get facade segment created by AWS Lambda
+  const segment = tracer.getSegment();
+
+  // Tracer: Create subsegment for the function & set it as active
+  let handlerSegment: Subsegment | undefined;
+  if (segment) {
+    handlerSegment = segment.addNewSubsegment(`## ${process.env._HANDLER}`);
+    tracer.setSegment(handlerSegment);
+  }
+  // Tracer: Annotate the subsegment with the cold start & serviceName
+  tracer.annotateColdStart();
+  tracer.addServiceNameAnnotation();
+
+  // Tracer: Add awsRequestId as annotation
+  tracer.putAnnotation("awsRequestId", context.awsRequestId);
+
+  // Metrics: Capture cold start metrics
+  metrics.captureColdStartMetric();
+
+  // Logger: Append awsRequestId to each log statement
+  logger.appendKeys({
+    awsRequestId: context.awsRequestId,
+  });
+
+  const uuid = uuidv4();
+
+  // Logger: Append uuid to each log statement
+  logger.appendKeys({ uuid });
+
+  // Tracer: Add uuid as annotation
+  tracer.putAnnotation("uuid", uuid);
+
+  // Metrics: Add uuid as metadata
+  metrics.addMetadata("uuid", uuid);
+  const eventIndex = event.Records.length - 1;
   if (
-    event.Records[e].eventName === "MODIFY" &&
-    event.Records[e].dynamodb?.NewImage?.sk.S?.slice(0, 6) === "ORDER#"
+    event.Records[eventIndex].eventName === "MODIFY" &&
+    event.Records[eventIndex].dynamodb?.NewImage?.sk.S?.slice(0, 6) === "ORDER#"
   ) {
-    console.log("Ready to enter the Queue");
-    const orderItems = event.Records[e].dynamodb?.NewImage?.orderItems?.L;
-    const userId = event.Records[e].dynamodb?.NewImage?.id.S;
-    console.log(orderItems);
+    const orderItems =
+      event.Records[eventIndex].dynamodb?.NewImage?.orderItems?.L;
+    const userId = event.Records[eventIndex].dynamodb?.NewImage?.id.S;
+    logger.info("Order Items: ", { orderItems });
     try {
       for (let index = 0; index < orderItems.length; index++) {
         const element = orderItems[index]?.M?.sk;
@@ -45,15 +89,22 @@ export async function main(event: any): Promise<DynamoDBStreamEvent> {
             },
             function (err, data) {
               if (err) {
-                console.log("Error:::: ", err);
+                logger.info("Error: ", { err });
               }
-              console.log(data);
+              logger.info("message sent: ", { data });
             }
           )
           .promise();
       }
     } catch (err) {
-      console.log(err);
+      logger.info("Error: ", { err });
+    } finally {
+      if (segment && handlerSegment) {
+        // Tracer: Close subsegment (the AWS Lambda one is closed automatically)
+        handlerSegment.close(); // (## index.handler)
+        // Tracer: Set the facade segment as active again (the one created by AWS Lambda)
+        tracer.setSegment(segment);
+      }
     }
   }
   return event;

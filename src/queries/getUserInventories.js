@@ -1,32 +1,38 @@
 import { util } from "@aws-appsync/utils";
+// export function request(ctx) {
+//   const { id } = ctx.args;
+//   // const query = JSON.parse(
+//   //   util.transform.toDynamoDBConditionExpression({
+//   //     id: { eq: id },
+//   //   })
+//   // );
+//   return {
+//     operation: "Query",
+//     query: {
+//       expression: "id = :id",
+//       expressionValues: {
+//         ":id": id,
+//       },
+//     },
+//   };
+// }
+
 export function request(ctx) {
   const { id } = ctx.args;
-  // const query = JSON.parse(
-  //   util.transform.toDynamoDBConditionExpression({
-  //     id: { eq: id },
-  //   })
-  // );
-  return {
-    operation: "Query",
-    query: {
-      expression: "id = :id",
-      expressionValues: {
-        ":id": id,
-      },
-    },
-  };
+  let query = { id: { eq: id } };
+  query = JSON.parse(util.transform.toDynamoDBConditionExpression(query));
+  return { operation: "Query", query };
 }
 
 export function response(ctx) {
+  console.log(ctx.result);
   let { items } = ctx.result;
   const user = items.find((item) => item.typeName === "User");
 
   // if no user is found, return null
   if (!user) {
     console.log("could not find user in reponse items");
-    return {
-      items,
-    };
+    return null;
   }
 
   const inventories = {};

@@ -20,7 +20,7 @@ export function request(ctx) {
 
 export function response(ctx) {
   const id = ctx.result.id;
-  const message = `Order ${id} placed successfully. You will recieve an email when order is completed`;
+  const message = `Make your payment here: https://buy.stripe.com/test_7sI02B9T5gYlaME28j`;
   const status = "Processing";
   return {
     id,

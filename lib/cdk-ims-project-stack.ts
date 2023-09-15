@@ -9,14 +9,28 @@ import { StripeWebhookStack } from "./compute/stripe-webhook-stack";
 import { OrderAppsyncFuncStack } from "./mappings/mutations/functions/order-appsync-func-stack";
 import { InventoryAppsyncFuncStack } from "./mappings/mutations/functions/inventory-appsync-func-stack";
 import { GetAppsyncFuncStack } from "./mappings/queries/get-appsync-func-stack";
+import {
+  CodePipeline,
+  CodePipelineSource,
+  ShellStep,
+} from "aws-cdk-lib/pipelines";
 
-// interface LambdaFuncProps extends cdk.StackProps{
-//   targetLambda: lambda.Function
-// }
 export class CdkImsProjectStack extends cdk.Stack {
   public orders_table: dynamodb.Table;
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Configuring CI/CD pipeline
+
+    new CodePipeline(this, "Pipeline", {
+      synth: new ShellStep("synth", {
+        input: CodePipelineSource.gitHub(
+          "EducloudHQ/inventory-management",
+          "main"
+        ),
+        commands: ["npm ci", "npm run build", "npx cdk synth"],
+      }),
+    });
 
     // cognito pool
 
@@ -126,33 +140,33 @@ export class CdkImsProjectStack extends cdk.Stack {
     new LambdaStack(this, "processOrder", {
       queue: queue,
       ddbTable: orders_table,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
 
     //  Stripe Webhook
     new StripeWebhookStack(this, "stripeWebhook", {
       orders_table: orders_table,
       inventory_table: test_table,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
     // Mutation functions
     new OrderAppsyncFuncStack(this, "orderAppsynceFuncStack", {
       orders_table: orders_table,
       api: api,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
 
     new InventoryAppsyncFuncStack(this, "InventoryAppsyncFuncStack", {
       inventories_table: test_table,
       api: api,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
 
     // Query functions
     new GetAppsyncFuncStack(this, "GetAppsyncFuncStack", {
       api: api,
-      env: { account: "132260253285", region: "eu-west-1" },
-      inventory_table: orders_table,
+      env: { account: this.account, region: this.region },
+      inventory_table: test_table,
     });
   }
 }

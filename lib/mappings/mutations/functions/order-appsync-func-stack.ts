@@ -54,7 +54,7 @@ export class OrderAppsyncFuncStack extends cdk.Stack {
       place_order_func: place_order,
       api: props.api,
       passthrough: passthrough,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
   }
 }

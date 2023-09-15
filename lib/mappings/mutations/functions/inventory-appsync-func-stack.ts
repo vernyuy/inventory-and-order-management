@@ -66,7 +66,7 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       create_item_func: add_item,
       create_user_func: add_emp,
       passthrough: passthrough,
-      env: { account: "132260253285", region: "eu-west-1" },
+      env: { account: this.account, region: this.region },
     });
   }
 }

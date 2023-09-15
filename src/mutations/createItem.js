@@ -9,7 +9,7 @@ export function request(ctx) {
   const item = { ...ctx.args.input };
   item.typeName = "Item";
   item.GSI1PK = "IVENTORY#" + ctx.args.input.inventoryId;
-  item.GSI1PK = "ITEM#" + id;
+  item.GSI1SK = "ITEM#" + id;
   item.AddedOn = util.time.nowEpochMilliSeconds();
   item.UpdatedOn = util.time.nowEpochMilliSeconds();
   return put({

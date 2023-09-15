@@ -1,14 +1,15 @@
 import { util } from "@aws-appsync/utils";
-export function request() {
+export function request(ctx) {
+  console.log("CONTEXT::   ", ctx);
+  const query = JSON.parse(
+    util.transform.toDynamoDBConditionExpression({
+      id: { eq: "USER" },
+      sk: { beginsWith: "USER#" },
+    })
+  );
   return {
     operation: "Query",
-    query: {
-      expression: "id = :id and begins_with(sk, :sk)",
-      expressionValues: util.dynamodb.toMapValues({
-        ":id": "USER",
-        ":sk": "USER#",
-      }),
-    },
+    query,
   };
 }
 

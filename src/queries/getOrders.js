@@ -1,8 +1,7 @@
+export function request() {
+  return {};
+}
 
-export function request(ctx) {
-    return {};
-    }
-
-    export function response(ctx) {
-    return ctx.prev.result;
-    }
+export function response(ctx) {
+  return ctx.prev.result;
+}
