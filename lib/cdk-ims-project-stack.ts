@@ -109,6 +109,10 @@ export class CdkImsProjectStack extends cdk.Stack {
         name: "GSI2PK",
         type: dynamodb.AttributeType.STRING,
       },
+      sortKey: {
+        name: "GSI2SK",
+        type: dynamodb.AttributeType.STRING,
+      },
     };
     test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps);
     test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps2);
