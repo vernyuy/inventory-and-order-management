@@ -104,10 +104,9 @@ input CreateInventory {
 
 input AddItemToCart {
   item: ID!
-  user: ID!
+  userId: ID!
   quantity: Int!
-  unit_price: Float!
-  createAt: AWSDateTime
+  unit_price: Float!=
 }
 
 input PlaceOrderInput {

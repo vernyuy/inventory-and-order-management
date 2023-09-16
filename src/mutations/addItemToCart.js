@@ -3,7 +3,7 @@ import { put } from "@aws-appsync/utils/dynamodb";
 
 export function request(ctx) {
   const key = {
-    id: ctx.args.input.user,
+    id: ctx.args.input.userId,
     sk: "ITEM#" + ctx.args.input.item,
   };
 

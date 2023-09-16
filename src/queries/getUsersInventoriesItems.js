@@ -2,9 +2,6 @@
 
 export function request(ctx) {
   console.log(ctx);
-  //   const { id } = ctx.args;
-  //   let query = { id: { eq: id } };
-  //   query = JSON.parse(util.transform.toDynamoDBConditionExpression(query));
   return { operation: "Scan" };
 }
 
