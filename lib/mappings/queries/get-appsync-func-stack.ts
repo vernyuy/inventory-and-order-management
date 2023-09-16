@@ -91,7 +91,7 @@ export class GetAppsyncFuncStack extends cdk.Stack {
       this,
       "get-inventory-items",
       {
-        name: "inventory_items_func",
+        name: "get_users_iventories_items",
         api: props.api,
         dataSource: inventoryDS,
         code: appsync.Code.fromAsset("src/queries/getInventoryItems.js"),
