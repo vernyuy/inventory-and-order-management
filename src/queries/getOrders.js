@@ -1,7 +1,17 @@
+import { util } from "@aws-appsync/utils";
 export function request() {
-  return {};
+  const query = JSON.parse(
+    util.transform.toDynamoDBConditionExpression({
+      GSI1PK: { eq: "ORDER" },
+    })
+  );
+  return {
+    operation: "Query",
+    query,
+    index: "GSI1",
+  };
 }
 
 export function response(ctx) {
-  return ctx.prev.result;
+  return ctx.result.items;
 }

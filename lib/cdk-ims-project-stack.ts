@@ -103,8 +103,19 @@ export class CdkImsProjectStack extends cdk.Stack {
       },
     };
 
+    const globalSecondaryIndexProps2: dynamodb.GlobalSecondaryIndexProps = {
+      indexName: "GSI2",
+      partitionKey: {
+        name: "GSI2PK",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "GSI2SK",
+        type: dynamodb.AttributeType.STRING,
+      },
+    };
     test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps);
-
+    test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps2);
     //// Dynamodb table to register orders
 
     const orders_table = new dynamodb.Table(this, "order-table", {

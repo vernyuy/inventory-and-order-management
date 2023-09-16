@@ -9,22 +9,19 @@ type User @aws_api_key @aws_cognito_user_pools {
   email: String!
   password: String!
   type: String
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  CreateOn: AWSDateTime
+  UpdatedOn: AWSDateTime
   phone: String
   address: String
   inventory: [Inventory]
-  test: String
 }
 
 type Inventory {
   id: ID!
   items: [Item]!
-  quantity: Int!
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  CreateOn: AWSDateTime
+  UpdatedOn: AWSDateTime
   employee: User!
-  test: String
 }
 
 type Item @aws_api_key @aws_cognito_user_pools {
@@ -32,8 +29,8 @@ type Item @aws_api_key @aws_cognito_user_pools {
   name: String!
   description: String!
   quantity_in_stock: Int!
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  CreateOn: AWSDateTime
+  UpdatedOn: AWSDateTime
   images: String
   price: Float!
   inventoryId: ID!
@@ -43,8 +40,8 @@ type Order {
   id: ID!
   items: [Item!]
   total_price: Float
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  CreateOn: AWSDateTime
+  UpdatedOn: AWSDateTime
   orderStatus: String
   total_qauntity: Int
 }
@@ -53,23 +50,29 @@ type PlaceOrder {
   id: ID!
   status: String
   message: String
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  CreateOn: AWSDateTime
+  UpdatedOn: AWSDateTime
 }
 type Query {
   users: [User]! @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
+
   items: [Item]! @aws_api_key @aws_cognito_user_pools
+
   inventories: [Inventory]!
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  # inventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
+  inventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
 
   getUserInventories(id: ID!): User
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  getInventoryItems(id: ID!): Inventory
+  getUsersInventoriesItems: User
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+
+  getInventoryItems(inventoryId: ID!): Inventory
 }
 
 input CreateUser {
@@ -79,12 +82,11 @@ input CreateUser {
 
 input CreateItem {
   name: String!
-  description: String!
+  description: String
   quantity_in_stock: Int!
   images: String
   inventoryId: ID!
   employeeId: ID!
-  orderId: ID
   price: Float!
 }
 
@@ -96,14 +98,8 @@ input UpdateItem {
   quantity: Int
 }
 
-input CreateOrder {
-  totalPrice: Float
-  status: String
-}
-
 input CreateInventory {
-  quantity: Int
-  employee: ID!
+  employeeId: ID!
 }
 
 input AddItemToCart {
@@ -115,9 +111,8 @@ input AddItemToCart {
 }
 
 input PlaceOrderInput {
-  user: ID!
-  quantity: Int!
-  total_price: Float!
+  userId: ID!
+  total_price: Float
   createAt: AWSDateTime
 }
 

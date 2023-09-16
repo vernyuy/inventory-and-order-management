@@ -2,13 +2,13 @@ import { util } from "@aws-appsync/utils";
 export function request() {
   const query = JSON.parse(
     util.transform.toDynamoDBConditionExpression({
-      id: { eq: "USER" },
-      sk: { beginsWith: "ITEM#" },
+      GSI2PK: { eq: "ITEM" },
     })
   );
   return {
     operation: "Query",
     query,
+    index: "GSI2",
   };
 }
 

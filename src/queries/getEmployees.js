@@ -3,13 +3,13 @@ export function request(ctx) {
   console.log("CONTEXT::   ", ctx);
   const query = JSON.parse(
     util.transform.toDynamoDBConditionExpression({
-      id: { eq: "USER" },
-      sk: { beginsWith: "USER#" },
+      GSI1PK: { eq: "USER" },
     })
   );
   return {
     operation: "Query",
     query,
+    index: "GSI1",
   };
 }
 

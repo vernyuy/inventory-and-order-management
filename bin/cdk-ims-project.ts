@@ -4,4 +4,6 @@ import { CdkImsProjectStack } from "../lib/cdk-ims-project-stack";
 
 const app = new cdk.App();
 
-new CdkImsProjectStack(app, "CdkImsProjectStack");
+new CdkImsProjectStack(app, "CdkImsProjectStack", {
+  env: { account: "132260253285", region: "eu-west-1" },
+});

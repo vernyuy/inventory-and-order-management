@@ -1,10 +1,11 @@
-import { util } from "@aws-appsync/utils";
+// import { util } from "@aws-appsync/utils";
 
 export function request(ctx) {
-  const { id } = ctx.args;
-  let query = { id: { eq: id } };
-  query = JSON.parse(util.transform.toDynamoDBConditionExpression(query));
-  return { operation: "Query", query };
+  console.log(ctx);
+  //   const { id } = ctx.args;
+  //   let query = { id: { eq: id } };
+  //   query = JSON.parse(util.transform.toDynamoDBConditionExpression(query));
+  return { operation: "Scan" };
 }
 
 export function response(ctx) {

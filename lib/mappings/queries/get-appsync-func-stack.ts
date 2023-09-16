@@ -42,10 +42,7 @@ export class GetAppsyncFuncStack extends cdk.Stack {
         name: "getUserInventoriesFunc",
         api: props.api,
         dataSource: inventoryDS,
-        code: appsync.Code.fromAsset(
-          "src/queries/getUserInventories.js"
-          // join(__dirname, '/getUserInventories.js')
-        ),
+        code: appsync.Code.fromAsset("src/queries/getUserInventories.js"),
         runtime: appsync.FunctionRuntime.JS_1_0_0,
       }
     );
@@ -79,6 +76,18 @@ export class GetAppsyncFuncStack extends cdk.Stack {
     });
 
     const get_inentory_items = new appsync.AppsyncFunction(
+      this,
+      "get-inventory-items",
+      {
+        name: "inventory_items_func",
+        api: props.api,
+        dataSource: inventoryDS,
+        code: appsync.Code.fromAsset("src/queries/getInventoryItems.js"),
+        runtime: appsync.FunctionRuntime.JS_1_0_0,
+      }
+    );
+
+    const get_users_iventories_items = new appsync.AppsyncFunction(
       this,
       "get-inventory-items",
       {

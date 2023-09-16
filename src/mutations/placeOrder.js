@@ -3,7 +3,7 @@ import { put } from "@aws-appsync/utils/dynamodb";
 
 export function request(ctx) {
   const key = {
-    id: ctx.args.input.user,
+    id: ctx.args.input.userId,
     sk: "ORDER#" + util.autoId(),
   };
   const item = { ...ctx.args.input };
@@ -12,6 +12,7 @@ export function request(ctx) {
   item.total_items = 0;
   item.CreatedOn = util.time.nowEpochMilliSeconds();
   item.UpdatedOn = util.time.nowEpochMilliSeconds();
+  item.GSI1PK = "ORDER";
   return put({
     key: key,
     item: item,
