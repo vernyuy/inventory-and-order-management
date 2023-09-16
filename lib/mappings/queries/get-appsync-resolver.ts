@@ -10,6 +10,7 @@ interface GetAppsyncResolveStackProps extends cdk.StackProps {
   get_users_func: appsync.AppsyncFunction;
   get_user_inventories_func: appsync.AppsyncFunction;
   api: appsync.GraphqlApi;
+  get_users_iventories_items_func: appsync.AppsyncFunction;
 }
 export class GetAppsyncResolveStack extends cdk.Stack {
   constructor(
@@ -63,5 +64,18 @@ export class GetAppsyncResolveStack extends cdk.Stack {
       pipelineConfig: [props.get_inventory_items_func],
       code: props.passthrough,
     });
+
+    new appsync.Resolver(
+      this,
+      "pipeline-resolver-get-users-inventories-items",
+      {
+        api: props.api,
+        typeName: "Query",
+        fieldName: "getUsersInventoriesItems",
+        runtime: appsync.FunctionRuntime.JS_1_0_0,
+        pipelineConfig: [props.get_users_iventories_items_func],
+        code: props.passthrough,
+      }
+    );
   }
 }
