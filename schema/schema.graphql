@@ -106,7 +106,7 @@ input AddItemToCart {
   item: ID!
   userId: ID!
   quantity: Int!
-  unit_price: Float!=
+  unit_price: Float!
 }
 
 input PlaceOrderInput {
