@@ -54,15 +54,17 @@ type PlaceOrder {
   UpdatedOn: AWSDateTime
 }
 type Query {
-  users: [User]! @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
+  getUsers: [User]!
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  items: [Item]! @aws_api_key @aws_cognito_user_pools
+  getItems: [Item]! @aws_api_key @aws_cognito_user_pools
 
-  inventories: [Inventory]!
+  getInventories: [Inventory]!
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  inventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
+  getInventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
 
   getUserInventories(id: ID!): User
     @aws_api_key

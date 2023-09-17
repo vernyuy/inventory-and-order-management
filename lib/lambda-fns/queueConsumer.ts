@@ -1,0 +1,41 @@
+import { SQSEvent, Context } from "aws-lambda";
+import { DynamoDB } from "aws-sdk";
+// import { logger, metrics, tracer } from "./common/powertools";
+// import { v4 as uuidv4 } from "uuid";
+// import type { Subsegment } from "aws-xray-sdk-core";
+
+const ddbClient = new DynamoDB.DocumentClient();
+const tableName = process.env.TABLE_NAME as string;
+export async function main(
+  event: SQSEvent,
+  context: Context
+): Promise<SQSEvent> {
+  const records = event.Records;
+  const order = JSON.parse(records[0].body);
+  const userId = order.id.S;
+
+  for (const item of order.orderItems.L) {
+    console.log(item);
+    const element = item.M.sk;
+    const params = {
+      TableName: tableName,
+      Key: {
+        id: `${userId}`,
+        sk: `${element.S}`,
+      },
+      UpdateExpression: "set cartProductStatus = :status, UpdateOn = :Updated",
+      ExpressionAttributeValues: {
+        ":status": "ORDERED",
+        ":Updated": Date.now().toString(),
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+    try {
+      const res = await ddbClient.update(params).promise();
+      console.log("Response", { res });
+    } catch (err: unknown) {
+      // logger.info("Error: ", { err });
+    }
+  }
+  return event;
+}

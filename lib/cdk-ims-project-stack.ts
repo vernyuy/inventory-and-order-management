@@ -4,16 +4,17 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 import * as sqs from "aws-cdk-lib/aws-sqs";
-import { LambdaStack } from "./compute/lambdaStack";
-import { StripeWebhookStack } from "./compute/stripe-webhook-stack";
-import { OrderAppsyncFuncStack } from "./mappings/mutations/functions/order-appsync-func-stack";
-import { InventoryAppsyncFuncStack } from "./mappings/mutations/functions/inventory-appsync-func-stack";
-import { GetAppsyncFuncStack } from "./mappings/queries/get-appsync-func-stack";
+import { LambdaFnsStack } from "./lambda-fns-stack";
+import { StripeWebhookStack } from "./stripe-webhook-stack";
+import { OrderAppsyncFuncStack } from "./order-appsync-func-stack";
+import { InventoryAppsyncFuncStack } from "./inventory-appsync-func-stack";
+import { QueryAppsyncFuncStack } from "./query-appsync-func-stack";
 import {
   CodePipeline,
   CodePipelineSource,
   ShellStep,
 } from "aws-cdk-lib/pipelines";
+import * as iam from "aws-cdk-lib/aws-iam";
 
 export class CdkImsProjectStack extends cdk.Stack {
   public orders_table: dynamodb.Table;
@@ -85,14 +86,14 @@ export class CdkImsProjectStack extends cdk.Stack {
     /////  DDB Table to store inventories
 
     const test_table = new dynamodb.Table(this, "test-table", {
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      sortKey: { type: dynamodb.AttributeType.STRING, name: "sk" },
+      partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { type: dynamodb.AttributeType.STRING, name: "SK" },
 
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
     // DDB GSI
     const globalSecondaryIndexProps: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "GSI1",
+      indexName: "UserInventoryIndex",
       partitionKey: {
         name: "GSI1PK",
         type: dynamodb.AttributeType.STRING,
@@ -104,7 +105,7 @@ export class CdkImsProjectStack extends cdk.Stack {
     };
 
     const globalSecondaryIndexProps2: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "GSI2",
+      indexName: "InventoryItemIndex",
       partitionKey: {
         name: "GSI2PK",
         type: dynamodb.AttributeType.STRING,
@@ -119,14 +120,14 @@ export class CdkImsProjectStack extends cdk.Stack {
     //// Dynamodb table to register orders
 
     const orders_table = new dynamodb.Table(this, "order-table", {
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      sortKey: { type: dynamodb.AttributeType.STRING, name: "sk" },
+      partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { type: dynamodb.AttributeType.STRING, name: "SK" },
       stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     const globalSecondaryIndexOrderProps: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "GSI1",
+      indexName: "OrderItemIndex",
       partitionKey: {
         name: "GSI1PK",
         type: dynamodb.AttributeType.STRING,
@@ -140,15 +141,37 @@ export class CdkImsProjectStack extends cdk.Stack {
     orders_table.addGlobalSecondaryIndex(globalSecondaryIndexOrderProps);
 
     // SQS queue
-    const queue = new sqs.Queue(this, "mainQueue", {
+    const dlq = new sqs.Queue(this, "mainQueueDlq", {
       visibilityTimeout: cdk.Duration.seconds(300),
-      queueName: "mainQueue.fifo",
-      fifo: true,
+      queueName: "dlq",
+      deliveryDelay: cdk.Duration.millis(0),
+      retentionPeriod: cdk.Duration.days(14),
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
+    const queue = new sqs.Queue(this, "mainQueue", {
+      visibilityTimeout: cdk.Duration.seconds(300),
+      queueName: "mainQueue",
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      deadLetterQueue: {
+        maxReceiveCount: 5,
+        queue: dlq,
+      },
+    });
+
+    const SQSQueueSSLRequestsOnlyPolicy = new iam.PolicyStatement({
+      actions: ["sqs:*"],
+      effect: iam.Effect.DENY,
+      principals: [new iam.AnyPrincipal()],
+      conditions: { Bool: { "aws:SecureTransport": "false" } },
+      resources: ["*"],
+    });
+
+    queue.addToResourcePolicy(SQSQueueSSLRequestsOnlyPolicy);
+
+    dlq.addToResourcePolicy(SQSQueueSSLRequestsOnlyPolicy);
 
     /// Lambda to process orders
-    new LambdaStack(this, "processOrder", {
+    new LambdaFnsStack(this, "processOrder", {
       queue: queue,
       ddbTable: orders_table,
       env: { account: this.account, region: this.region },
@@ -174,7 +197,7 @@ export class CdkImsProjectStack extends cdk.Stack {
     });
 
     // Query functions
-    new GetAppsyncFuncStack(this, "GetAppsyncFuncStack", {
+    new QueryAppsyncFuncStack(this, "GetAppsyncFuncStack", {
       api: api,
       env: { account: this.account, region: this.region },
       inventory_table: test_table,
