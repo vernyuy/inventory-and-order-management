@@ -16,6 +16,10 @@ type User @aws_api_key @aws_cognito_user_pools {
   inventory: [Inventory]
 }
 
+type UserResult {
+  items: [User!]!
+  nextToken: String!
+}
 type Inventory {
   id: ID!
   items: [Item]!

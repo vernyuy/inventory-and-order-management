@@ -12,8 +12,8 @@ export function request(
   return {
     operation: "PutItem",
     key: {
-      id: util.dynamodb.toDynamoDB(`USER#${id}`),
-      sk: util.dynamodb.toDynamoDB(`USER#${id}`),
+      PK: util.dynamodb.toDynamoDB(`USER#${id}`),
+      SK: util.dynamodb.toDynamoDB(`USER#${id}`),
     },
     attributeValues: util.dynamodb.toMapValues({
       publishDate: util.time.nowISO8601(),

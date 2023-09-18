@@ -113,7 +113,7 @@ export class QueryAppsyncFuncStack extends cdk.Stack {
     new appsync.Resolver(this, "pipeline-resolver-get-items", {
       api: props.api,
       typeName: "Query",
-      fieldName: "items",
+      fieldName: "getItems",
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [get_items],
       code: passthrough,
@@ -131,7 +131,7 @@ export class QueryAppsyncFuncStack extends cdk.Stack {
     new appsync.Resolver(this, "pipeline-resolver-get-users", {
       api: props.api,
       typeName: "Query",
-      fieldName: "users",
+      fieldName: "getUsers",
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [get_users_func],
       code: passthrough,
@@ -140,7 +140,7 @@ export class QueryAppsyncFuncStack extends cdk.Stack {
     new appsync.Resolver(this, "pipeline-resolver-get-inventories", {
       api: props.api,
       typeName: "Query",
-      fieldName: "inventories",
+      fieldName: "getInventories",
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [get_inventories],
       code: passthrough,

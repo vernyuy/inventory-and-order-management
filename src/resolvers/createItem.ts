@@ -1,7 +1,7 @@
 import { Context, DynamoDBPutItemRequest, util } from "@aws-appsync/utils";
 import { createItem } from "../lib/helpers";
 import { MutationCreateItemArgs, Item } from "../types/appsync";
-
+import * as ddb from "@aws-appsync/utils/dynamodb";
 export function request(
   ctx: Context<MutationCreateItemArgs>
 ): DynamoDBPutItemRequest {
@@ -10,11 +10,28 @@ export function request(
 
   const id = util.autoId();
 
+  // const key = {
+  //   id: item.employeeId,
+  //   sk: "ITEM#" + id,
+  // };
+  // const itemParams = {
+  //   publishDate: util.time.nowISO8601(),
+  //   ...item,
+  //   GSI1PK: "INVENTORY#" + item.inventoryId,
+  //   GSI1SK: "ITEM#" + id,
+  //   GSI2PK: "ITEM",
+  // };
+
+  // return ddb.put(
+  //   key,
+  //   itemParams
+  // )
+
   return {
     operation: "PutItem",
     key: {
-      id: util.dynamodb.toDynamoDB(item.employeeId),
-      sk: "ITEM#" + id,
+      PK: util.dynamodb.toDynamoDB(item.employeeId),
+      SK: "ITEM#" + id,
     },
     attributeValues: util.dynamodb.toMapValues({
       publishDate: util.time.nowISO8601(),

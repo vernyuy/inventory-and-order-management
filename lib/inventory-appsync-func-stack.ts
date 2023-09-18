@@ -3,7 +3,7 @@ import { Construct } from "constructs";
 import * as appsync from "aws-cdk-lib/aws-appsync";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { join } from "path";
-import { bundleAppSyncResolver } from "./helpers";
+import { bundleAppSyncResolver } from "./utils/helpers";
 
 interface InventoryAppsyncFuncStackProps extends cdk.StackProps {
   inventories_table: dynamodb.Table;

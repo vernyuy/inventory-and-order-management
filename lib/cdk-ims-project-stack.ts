@@ -26,7 +26,7 @@ export class CdkImsProjectStack extends cdk.Stack {
     new CodePipeline(this, "Pipeline", {
       synth: new ShellStep("synth", {
         input: CodePipelineSource.gitHub(
-          "EducloudHQ/inventory-management",
+          "vernyuy/inventory-and-order-management",
           "main"
         ),
         commands: ["npm ci", "npm run build", "npx cdk synth"],
@@ -50,6 +50,7 @@ export class CdkImsProjectStack extends cdk.Stack {
           mutable: true,
         },
       },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     new cognito.UserPoolClient(this, "imsUserPoolClient", {
@@ -88,7 +89,6 @@ export class CdkImsProjectStack extends cdk.Stack {
     const test_table = new dynamodb.Table(this, "test-table", {
       partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
       sortKey: { type: dynamodb.AttributeType.STRING, name: "SK" },
-
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
     // DDB GSI
