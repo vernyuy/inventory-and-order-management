@@ -31,14 +31,15 @@ export function request(
     operation: "PutItem",
     key: {
       PK: util.dynamodb.toDynamoDB(item.employeeId),
-      SK: "ITEM#" + id,
+      SK: util.dynamodb.toDynamoDB("ITEM#" + id),
     },
     attributeValues: util.dynamodb.toMapValues({
       publishDate: util.time.nowISO8601(),
       ...item,
-      GSI1PK: "INVENTORY#" + item.inventoryId,
+      GSI1PK: item.inventoryId,
       GSI1SK: "ITEM#" + id,
-      GSI2PK: "ITEM",
+      GSI2SK: "ITEM",
+      GSI2PK: "ITEM#" + id,
     }),
   };
 }

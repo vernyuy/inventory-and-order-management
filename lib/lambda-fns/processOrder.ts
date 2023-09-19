@@ -1,6 +1,6 @@
 import { DynamoDBStreamEvent, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { logger, metrics, tracer } from "../utils";
+import { logger, metrics, tracer } from "../utils/index";
 // import type { Subsegment } from "aws-xray-sdk-core";
 
 const docClient = new AWS.DynamoDB.DocumentClient();
@@ -29,20 +29,20 @@ export async function main(
 
   if (
     event.Records[0].eventName === "INSERT" &&
-    event.Records[0].dynamodb?.NewImage?.sk.S?.slice(0, 6) === "ORDER#"
+    event.Records[0].dynamodb?.NewImage?.SK.S?.slice(0, 6) === "ORDER#"
   ) {
     logger.info(`Response ${event.Records[0].eventName}`, {
       statusCode: 200,
       body: event.Records,
     });
 
-    const id = event.Records[0].dynamodb?.NewImage?.id.S;
-    const orderId = event.Records[0].dynamodb?.NewImage?.sk.S;
+    const id = event.Records[0].dynamodb?.NewImage?.PK.S;
+    const orderId = event.Records[0].dynamodb?.NewImage?.SK.S;
 
     const cartItems = await docClient
       .query({
         TableName: tableName,
-        KeyConditionExpression: "id = :id AND begins_with(sk, :sk)",
+        KeyConditionExpression: "PK = :id AND begins_with(PK, :sk)",
         FilterExpression: "cartProductStatus = :status",
         ProjectionExpression: "sk, quantity, unit_price",
         ExpressionAttributeValues: {
@@ -67,8 +67,8 @@ export async function main(
         .update({
           TableName: tableName,
           Key: {
-            id: id,
-            sk: orderId,
+            PK: id,
+            SK: orderId,
           },
           UpdateExpression:
             "set orderItems = :orderItems, orderStatus = :status, total_items = :total_items, total_price = :total_price, UpdatedOn = :update",

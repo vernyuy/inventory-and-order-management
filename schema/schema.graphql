@@ -4,7 +4,7 @@ enum TYPE {
 }
 
 type User @aws_api_key @aws_cognito_user_pools {
-  id: ID!
+  PK: ID!
   name: String!
   email: String!
   password: String!
@@ -21,15 +21,15 @@ type UserResult {
   nextToken: String!
 }
 type Inventory {
-  id: ID!
-  items: [Item]!
+  PK: ID!
+  items: [Item]
   CreateOn: AWSDateTime
   UpdatedOn: AWSDateTime
   employee: User!
 }
 
 type Item @aws_api_key @aws_cognito_user_pools {
-  id: ID!
+  PK: ID!
   name: String!
   description: String!
   quantity_in_stock: Int!
@@ -41,7 +41,7 @@ type Item @aws_api_key @aws_cognito_user_pools {
 }
 
 type Order {
-  id: ID!
+  PK: ID!
   items: [Item!]
   total_price: Float
   CreateOn: AWSDateTime
@@ -51,20 +51,21 @@ type Order {
 }
 
 type PlaceOrder {
-  id: ID!
+  PK: ID!
   status: String
   message: String
   CreateOn: AWSDateTime
   UpdatedOn: AWSDateTime
 }
+
 type Query {
-  getUsers: [User]!
+  getUsers: User!
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  getItems: [Item]! @aws_api_key @aws_cognito_user_pools
+  getItems: Item! @aws_api_key @aws_cognito_user_pools
 
-  getInventories: [Inventory]!
+  getInventories: Inventory!
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 

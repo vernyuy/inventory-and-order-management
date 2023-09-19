@@ -12,7 +12,7 @@ export async function main(
 ): Promise<SQSEvent> {
   const records = event.Records;
   const order = JSON.parse(records[0].body);
-  const userId = order.id.S;
+  const userId = order.PK.S;
 
   for (const item of order.orderItems.L) {
     console.log(item);
@@ -20,8 +20,8 @@ export async function main(
     const params = {
       TableName: tableName,
       Key: {
-        id: `${userId}`,
-        sk: `${element.S}`,
+        PK: `${userId}`,
+        SK: `${element.S}`,
       },
       UpdateExpression: "set cartProductStatus = :status, UpdateOn = :Updated",
       ExpressionAttributeValues: {

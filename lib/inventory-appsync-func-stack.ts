@@ -38,6 +38,9 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       api: props.api,
       dataSource: InventoryDS,
       code: bundleAppSyncResolver("src/resolvers/createUser.ts"),
+      // code: appsync.Code.fromAsset(
+      //   join(__dirname, "./mappings/mutations/mutation.createUser.js")
+      // ),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 

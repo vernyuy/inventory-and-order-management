@@ -1,6 +1,6 @@
 import { DynamoDBStreamEvent, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { logger, metrics, tracer } from "../utils";
+import { logger, metrics, tracer } from "../utils/index";
 
 const sqs = new AWS.SQS();
 
@@ -30,7 +30,7 @@ export async function main(
   const eventIndex = event.Records.length - 1;
   if (
     event.Records[0].eventName === "MODIFY" &&
-    event.Records[0].dynamodb?.NewImage?.sk.S?.slice(0, 6) === "ORDER#"
+    event.Records[0].dynamodb?.NewImage?.SK.S?.slice(0, 6) === "ORDER#"
   ) {
     const orderItems =
       event.Records[eventIndex].dynamodb?.NewImage?.orderItems?.L;
