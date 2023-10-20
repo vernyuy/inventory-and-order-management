@@ -4,34 +4,39 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 import * as sqs from "aws-cdk-lib/aws-sqs";
-import { LambdaFnsStack } from "./lambda-fns-stack";
+// import { LambdaFnsStack } from "./lambda-fns-stack";
 import { StripeWebhookStack } from "./stripe-webhook-stack";
 import { OrderAppsyncFuncStack } from "./order-appsync-func-stack";
 import { InventoryAppsyncFuncStack } from "./inventory-appsync-func-stack";
-import { QueryAppsyncFuncStack } from "./query-appsync-func-stack";
+// import { QueryAppsyncFuncStack } from "./query-appsync-func-stack";
 import {
   CodePipeline,
   CodePipelineSource,
   ShellStep,
 } from "aws-cdk-lib/pipelines";
 import * as iam from "aws-cdk-lib/aws-iam";
+// import * as secret from "aws-cdk-lib/aws-secretsmanager"
 
 export class CdkImsProjectStack extends cdk.Stack {
   public orders_table: dynamodb.Table;
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // Creating github secret in aws secrets manager
+
+    // new secret
+
     // Configuring CI/CD pipeline
 
-    new CodePipeline(this, "Pipeline", {
-      synth: new ShellStep("synth", {
-        input: CodePipelineSource.gitHub(
-          "vernyuy/inventory-and-order-management",
-          "main"
-        ),
-        commands: ["npm ci", "npm run build", "npx cdk synth"],
-      }),
-    });
+    // new CodePipeline(this, "Pipeline", {
+    //   synth: new ShellStep("synth", {
+    //     input: CodePipelineSource.gitHub(
+    //       "vernyuy/inventory-and-order-management",
+    //       "main"
+    //     ),
+    //     commands: ["npm ci", "npm run build", "npx cdk synth"],
+    //   }),
+    // });
 
     // cognito pool
 
@@ -95,11 +100,11 @@ export class CdkImsProjectStack extends cdk.Stack {
     const globalSecondaryIndexProps: dynamodb.GlobalSecondaryIndexProps = {
       indexName: "UserInventoryIndex",
       partitionKey: {
-        name: "GSI1PK",
+        name: "UserInventoryIndexPK",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "GSI1SK",
+        name: "UserInventoryIndexSK",
         type: dynamodb.AttributeType.STRING,
       },
     };
@@ -107,11 +112,11 @@ export class CdkImsProjectStack extends cdk.Stack {
     const globalSecondaryIndexProps2: dynamodb.GlobalSecondaryIndexProps = {
       indexName: "InventoryItemIndex",
       partitionKey: {
-        name: "GSI2PK",
+        name: "InventoryItemIndexSK",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "GSI2SK",
+        name: "InventoryItemIndexPK",
         type: dynamodb.AttributeType.STRING,
       },
     };
@@ -129,11 +134,11 @@ export class CdkImsProjectStack extends cdk.Stack {
     const globalSecondaryIndexOrderProps: dynamodb.GlobalSecondaryIndexProps = {
       indexName: "OrderItemIndex",
       partitionKey: {
-        name: "GSI1PK",
+        name: "OrderItemIndexPK",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "GSI1SK",
+        name: "OrderItemIndexSK",
         type: dynamodb.AttributeType.STRING,
       },
     };
@@ -171,11 +176,11 @@ export class CdkImsProjectStack extends cdk.Stack {
     dlq.addToResourcePolicy(SQSQueueSSLRequestsOnlyPolicy);
 
     /// Lambda to process orders
-    new LambdaFnsStack(this, "processOrder", {
-      queue: queue,
-      ddbTable: orders_table,
-      env: { account: this.account, region: this.region },
-    });
+    // new LambdaFnsStack(this, "processOrder", {
+    //   queue: queue,
+    //   ddbTable: orders_table,
+    //   env: { account: this.account, region: this.region },
+    // });
 
     //  Stripe Webhook
     new StripeWebhookStack(this, "stripeWebhook", {
@@ -186,6 +191,7 @@ export class CdkImsProjectStack extends cdk.Stack {
     // Mutation functions
     new OrderAppsyncFuncStack(this, "orderAppsynceFuncStack", {
       orders_table: orders_table,
+      queue: queue,
       api: api,
       env: { account: this.account, region: this.region },
     });
@@ -197,10 +203,10 @@ export class CdkImsProjectStack extends cdk.Stack {
     });
 
     // Query functions
-    new QueryAppsyncFuncStack(this, "GetAppsyncFuncStack", {
-      api: api,
-      env: { account: this.account, region: this.region },
-      inventory_table: test_table,
-    });
+    // new QueryAppsyncFuncStack(this, "GetAppsyncFuncStack", {
+    //   api: api,
+    //   env: { account: this.account, region: this.region },
+    //   inventory_table: test_table,
+    // });
   }
 }

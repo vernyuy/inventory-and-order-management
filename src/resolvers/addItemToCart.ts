@@ -8,8 +8,8 @@ export function request(ctx: Context<MutationAddItemToCartArgs>) {
   const items = ctx.args.input;
   const item = addItemToCart(() => ctx.args.input);
   const key = {
-    id: `USER#${items?.userId}`,
-    sk: `ITEM#${items?.item}`,
+    PK: `USER#${items?.userId}`,
+    SK: `ITEM#${items?.item}`,
   };
 
   return put({

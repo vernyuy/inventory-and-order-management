@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { APIGatewayProxyResult, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
 import { logger, metrics, tracer } from "../utils";

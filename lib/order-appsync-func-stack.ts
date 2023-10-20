@@ -3,10 +3,21 @@ import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as appsync from "aws-cdk-lib/aws-appsync";
 import { join } from "path";
+import { SqsDestination } from "aws-cdk-lib/aws-lambda-destinations";
+import { Tracing } from "aws-cdk-lib/aws-lambda";
+import * as iam from "aws-cdk-lib/aws-iam";
+import path = require("path");
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as SQS from "aws-cdk-lib/aws-sqs";
+import {
+  DynamoEventSource,
+  SqsEventSource,
+} from "aws-cdk-lib/aws-lambda-event-sources";
 
 interface OrderAppsyncFuncStackProps extends cdk.StackProps {
   orders_table: dynamodb.Table;
   api: appsync.GraphqlApi;
+  queue: SQS.Queue;
 }
 export class OrderAppsyncFuncStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: OrderAppsyncFuncStackProps) {
@@ -15,6 +26,98 @@ export class OrderAppsyncFuncStack extends cdk.Stack {
     const OrdersDS = props.api.addDynamoDbDataSource(
       "Order_data_source",
       props.orders_table
+    );
+
+    const powertoolsLayer = lambda.LayerVersion.fromLayerVersionArn(
+      this,
+      "PowertoolsLayer",
+      `arn:aws:lambda:${
+        cdk.Stack.of(this).region
+      }:094274105915:layer:AWSLambdaPowertoolsTypeScript:18`
+    );
+
+    const queueConsumer = new lambda.Function(this, "consumerFunction", {
+      handler: "queueConsumer.main",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda-fns")),
+      environment: {
+        TABLE_NAME: props.orders_table.tableName,
+        QUEUE_NAME: props.queue.queueName,
+        QUEUE_URL: props.queue.queueUrl,
+      },
+      tracing: Tracing.ACTIVE,
+      layers: [powertoolsLayer],
+    });
+
+    const process_order = new lambda.Function(this, "processOrder", {
+      handler: "processOrder.main",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda-fns")),
+      environment: {
+        TABLE_NAME: props.orders_table.tableName,
+        QUEUE_NAME: props.queue.queueName,
+        QUEUE_URL: props.queue.queueUrl,
+      },
+      layers: [powertoolsLayer],
+      tracing: Tracing.ACTIVE,
+      onSuccess: new SqsDestination(props.queue),
+    });
+    process_order.addEventSource(
+      new DynamoEventSource(props.orders_table, {
+        startingPosition: lambda.StartingPosition.LATEST,
+      })
+    );
+
+    props.orders_table.grantStreamRead(process_order);
+    props.orders_table.grantReadWriteData(process_order);
+
+    const streamConsumer = new lambda.Function(this, "streamConsumer", {
+      handler: "streamConsumer.main",
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda-fns")),
+      environment: {
+        TABLE_NAME: props.orders_table.tableName,
+        QUEUE_NAME: props.queue.queueName,
+        QUEUE_URL: props.queue.queueUrl,
+      },
+      layers: [powertoolsLayer],
+      tracing: Tracing.ACTIVE,
+      onSuccess: new SqsDestination(props.queue),
+    });
+
+    streamConsumer.addEventSource(
+      new DynamoEventSource(props.orders_table, {
+        startingPosition: lambda.StartingPosition.LATEST,
+      })
+    );
+
+    queueConsumer.addEventSource(new SqsEventSource(props.queue));
+
+    props.queue.grantConsumeMessages(queueConsumer);
+    props.orders_table.grantReadWriteData(queueConsumer);
+    props.orders_table.grantStreamRead(streamConsumer);
+    props.orders_table.grantReadWriteData(streamConsumer);
+    props.queue.grantSendMessages(streamConsumer);
+
+    const streamConsumerRole = new iam.Role(this, "streamConsumerRole", {
+      assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+    });
+
+    streamConsumerRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+        ],
+        resources: [
+          "arn:aws:logs:" +
+            this.region +
+            ":" +
+            this.account +
+            ":log-group:/aws/lambda/streamConsumer:*",
+        ],
+      })
     );
 
     const passthrough = appsync.InlineCode.fromInline(`

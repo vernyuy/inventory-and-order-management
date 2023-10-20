@@ -1,4 +1,4 @@
-import { SQSEvent, Context } from "aws-lambda";
+import { SQSEvent } from "aws-lambda";
 import { DynamoDB } from "aws-sdk";
 // import { logger, metrics, tracer } from "./common/powertools";
 // import { v4 as uuidv4 } from "uuid";
@@ -6,10 +6,7 @@ import { DynamoDB } from "aws-sdk";
 
 const ddbClient = new DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;
-export async function main(
-  event: SQSEvent,
-  context: Context
-): Promise<SQSEvent> {
+export async function main(event: SQSEvent): Promise<SQSEvent> {
   const records = event.Records;
   const order = JSON.parse(records[0].body);
   const userId = order.PK.S;

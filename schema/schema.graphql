@@ -1,6 +1,12 @@
 enum TYPE {
   ADMIN
   EMPLOYEE
+  CUSTOMER
+}
+
+type Schema {
+  query: Query
+  mutation: Mutation
 }
 
 type User @aws_api_key @aws_cognito_user_pools {
@@ -8,9 +14,9 @@ type User @aws_api_key @aws_cognito_user_pools {
   name: String!
   email: String!
   password: String!
-  type: String
-  CreateOn: AWSDateTime
-  UpdatedOn: AWSDateTime
+  userType: TYPE!
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   phone: String
   address: String
   inventory: [Inventory]
@@ -23,8 +29,8 @@ type UserResult {
 type Inventory {
   PK: ID!
   items: [Item]
-  CreateOn: AWSDateTime
-  UpdatedOn: AWSDateTime
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   employee: User!
 }
 
@@ -33,8 +39,8 @@ type Item @aws_api_key @aws_cognito_user_pools {
   name: String!
   description: String!
   quantity_in_stock: Int!
-  CreateOn: AWSDateTime
-  UpdatedOn: AWSDateTime
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   images: String
   price: Float!
   inventoryId: ID!
@@ -44,8 +50,8 @@ type Order {
   PK: ID!
   items: [Item!]
   total_price: Float
-  CreateOn: AWSDateTime
-  UpdatedOn: AWSDateTime
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   orderStatus: String
   total_qauntity: Int
 }
@@ -57,7 +63,9 @@ type PlaceOrder {
   CreateOn: AWSDateTime
   UpdatedOn: AWSDateTime
 }
-
+type UserConnection {
+  
+}
 type Query {
   getUsers: User!
     @aws_api_key
