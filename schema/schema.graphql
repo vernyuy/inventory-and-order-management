@@ -1,163 +1,155 @@
-
 enum TYPE {
   ADMIN
   EMPLOYEE
+  CUSTOMER
+}
+
+type Schema {
+  query: Query
+  mutation: Mutation
 }
 
 type User @aws_api_key @aws_cognito_user_pools {
-  id: ID!
-  sk: ID
+  PK: ID!
   name: String!
   email: String!
   password: String!
-  type: String
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  userType: TYPE!
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   phone: String
   address: String
   inventory: [Inventory]
-  test: String
 }
 
-
+type UserResult {
+  items: [User!]!
+  nextToken: String!
+}
 type Inventory {
-  id: ID!
-  sk: ID
-  items: [Item]!
-  quantity: Int!
+  PK: ID!
+  items: [Item]
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   employee: User!
-  test: String
 }
 
 type Item @aws_api_key @aws_cognito_user_pools {
-  id: ID!
-  sk: ID
+  PK: ID!
   name: String!
   description: String!
   quantity_in_stock: Int!
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
   images: String
   price: Float!
   inventoryId: ID!
 }
 
 type Order {
-  id: ID!
-  sk: ID
+  PK: ID!
   items: [Item!]
-  totalPrice: Float!
-  status: String!
+  total_price: Float
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
+  orderStatus: String
+  total_qauntity: Int
+}
+
+type PlaceOrder {
+  PK: ID!
+  status: String
+  message: String
+  CreateOn: AWSDateTime
+  UpdatedOn: AWSDateTime
+}
+type UserConnection {
+  
 }
 type Query {
+  getUsers: User!
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  users: [User]!
-    @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
+  getItems: Item! @aws_api_key @aws_cognito_user_pools
 
-  items: [Item]!
-    @aws_api_key @aws_cognito_user_pools
-
-  item(id: ID!): Item
-    @aws_api_key @aws_cognito_user_pools
-
-  orders: [Order]!
+  getInventories: Inventory!
+    @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  order(id: ID!): Order
+  getInventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
+
+  getUserInventories(id: ID!): User
+    @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  inventories: [Inventory]!
-    #@aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
+  getUsersInventoriesItems: User
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 
-  inventory(id: ID!): Inventory
-    @aws_api_key @aws_cognito_user_pools
-
-  getUserInventories(id: ID!): User @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
-
-  getInventoryItems(id: ID!): Item 
-  
+  getInventoryItems(inventoryId: ID!): Inventory
 }
 
 input CreateUser {
-    name: String!
-    email: String!
+  name: String!
+  email: String!
 }
 
 input CreateItem {
-    name: String!,
-    description: String!
-    quantity_in_stock: Int!
-    images: String
-    inventoryId: ID!
-    employeeId: ID!
-    orderId: ID
+  name: String!
+  description: String
+  quantity_in_stock: Int!
+  images: String
+  inventoryId: ID!
+  employeeId: ID!
+  price: Float!
 }
 
 input UpdateItem {
-    id: ID!,
-    name: String,
-    description: String,
-    price: Float,
-    quantity: Int,
-}
-
-input CreateOrder {
-    totalPrice: Float
-    status: String
+  id: ID!
+  name: String
+  description: String
+  price: Float
+  quantity: Int
 }
 
 input CreateInventory {
-  quantity: Int
-  employee: ID!
+  employeeId: ID!
 }
 
 input AddItemToCart {
   item: ID!
-  user: ID!
+  userId: ID!
   quantity: Int!
   unit_price: Float!
-  createAt: AWSDateTime
 }
 
 input PlaceOrderInput {
-  user: ID!
-  quantity: Int!
-  total_price: Float!
+  userId: ID!
+  total_price: Float
   createAt: AWSDateTime
 }
 
 type Mutation {
   createUser(input: CreateUser!): User
-    @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
-
-  createItem(input: CreateItem!): Item
-    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
-
-  updateItem(input: UpdateItem!): Item
-    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
-
-  deleteItem(id: ID!): Item
+    @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  createOrder(input: CreateOrder!): Order
-    @aws_cognito_user_pools(cognito_groups: ["user"])
-
-  # updateOrder(id: ID!, userId: ID!, itemLines: [ItemLine]): Order!
-  # deleteOrder(id: ID!): Order!
+  createItem(input: CreateItem!): Item
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
   createInventory(input: CreateInventory): Inventory!
+    @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
   addItemToCart(input: AddItemToCart): Item!
 
-  addItemToCart1(input: AddItemToCart): Item!
-
-  placeOrder(input: PlaceOrderInput): Item!
-
-  # updateInventory(input: CreateInventory): Inventory!
-  # deleteInventory(id: ID!): Inventory!
+  placeOrder(input: PlaceOrderInput): PlaceOrder!
 }
 
 type Subscription {
-  createUser: User
-  createItem: Item
-  updateItem: Item
+  onCreateUser: User @aws_subscribe(mutations: ["createUser"]) # Basic Subscription filtering
+  onCreateItem: Item @aws_subscribe(mutations: ["createItem"]) # Basic subscription filtering
+  onPlaceOrder: PlaceOrder @aws_subscribe(mutations: ["placeOrder"])
 }
