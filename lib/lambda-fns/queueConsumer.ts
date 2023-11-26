@@ -1,6 +1,6 @@
 import { SQSEvent } from "aws-lambda";
 import { DynamoDB } from "aws-sdk";
-// import { logger, metrics, tracer } from "./common/powertools";
+// import { logger, metrics, tracer } from "../utils";
 // import { v4 as uuidv4 } from "uuid";
 // import type { Subsegment } from "aws-xray-sdk-core";
 

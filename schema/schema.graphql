@@ -10,10 +10,10 @@ type Schema {
 }
 
 type User @aws_api_key @aws_cognito_user_pools {
-  PK: ID!
+  PK: String!
   name: String!
   email: String!
-  password: String!
+  password: String
   userType: TYPE!
   CreateAt: AWSDateTime
   UpdatedAt: AWSDateTime
@@ -63,13 +63,9 @@ type PlaceOrder {
   CreateOn: AWSDateTime
   UpdatedOn: AWSDateTime
 }
-type UserConnection {
-  
-}
+
 type Query {
-  getUsers: User!
-    @aws_api_key
-    @aws_cognito_user_pools(cognito_groups: ["admin"])
+  getUsers: User @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
 
   getItems: Item! @aws_api_key @aws_cognito_user_pools
 
@@ -91,8 +87,14 @@ type Query {
 }
 
 input CreateUser {
+  PK: ID!
   name: String!
   email: String!
+  userType: TYPE!
+  CreateAt: AWSDateTime
+  UpdatedAt: AWSDateTime
+  phone: String
+  address: String
 }
 
 input CreateItem {

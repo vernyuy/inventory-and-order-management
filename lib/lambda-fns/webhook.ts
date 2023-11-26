@@ -55,19 +55,19 @@ module.exports.lambdaHandler = async (
   console.log(body.data.object.customer_email);
   //   console.log(body.customer_email);
   const email = body.data.object.customer_email;
-  const customer = await docClient
-    .scan({
-      TableName: tableName,
-      FilterExpression: `email = :email`,
-      ExpressionAttributeValues: {
-        ":email": email,
-      },
-    })
-    .promise();
-  console.log(customer);
-  const user = await docClient.query({
+  // const customer = await docClient
+  //   .scan({
+  //     TableName: tableName,
+  //     FilterExpression: `email = :email`,
+  //     ExpressionAttributeValues: {
+  //       ":email": email,
+  //     },
+  //   })
+  //   .promise();
+  // console.log(customer);
+  const user: any = docClient.query({
     TableName: tableName,
-    KeyConditionExpression: "GSI1PK = USER",
+    KeyConditionExpression: "UserInventoryIndexPK = USER",
     FilterExpression: "email = :email",
     ExpressionAttributeValues: {
       ":email": email,
@@ -75,20 +75,17 @@ module.exports.lambdaHandler = async (
   });
   console.log("user:::  ", user);
 
-  // docClient.update(
-  //   {
-  //     TableName: tableName,
-  //     Key: {
-  //       pk: user.Items[0].pk,
-  //     },
-  //     ConditionExpression: "userId = :email",
-  //     UpdateExpression: "set cartProductStatus = :cartProductStatus",
-  //     ExpressionAttributeValues: {
-  //       ":cartProductStatus": "PENDING",
-  //     },
-  //   }
-  // userId: userId,
-  // productId: productId,
-  // );
-  return event;
+  const paymentStatus: any = docClient.update({
+    TableName: tableName,
+    Key: {
+      pk: user?.Items[0].pk,
+    },
+    ConditionExpression: "PK = :email",
+    UpdateExpression: "set orderStatus = :orderStatus",
+    ExpressionAttributeValues: {
+      ":orderStatus": "PAYED",
+      ":userPK": user.Items[0].PK,
+    },
+  });
+  return paymentStatus;
 };

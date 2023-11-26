@@ -49,25 +49,30 @@ export type CreateItem = {
 };
 
 export type CreateUser = {
+  CreateAt?: InputMaybe<Scalars["AWSDateTime"]>;
+  UpdatedAt?: InputMaybe<Scalars["AWSDateTime"]>;
+  address?: InputMaybe<Scalars["String"]>;
   email: Scalars["String"];
   name: Scalars["String"];
+  phone?: InputMaybe<Scalars["String"]>;
+  userType: Type;
 };
 
 export type Inventory = {
   __typename?: "Inventory";
-  CreateOn?: Maybe<Scalars["AWSDateTime"]>;
-  UpdatedOn?: Maybe<Scalars["AWSDateTime"]>;
+  CreateAt?: Maybe<Scalars["AWSDateTime"]>;
+  PK: Scalars["ID"];
+  UpdatedAt?: Maybe<Scalars["AWSDateTime"]>;
   employee: User;
-  id: Scalars["ID"];
-  items: Array<Maybe<Item>>;
+  items?: Maybe<Array<Maybe<Item>>>;
 };
 
 export type Item = {
   __typename?: "Item";
-  CreateOn?: Maybe<Scalars["AWSDateTime"]>;
-  UpdatedOn?: Maybe<Scalars["AWSDateTime"]>;
+  CreateAt?: Maybe<Scalars["AWSDateTime"]>;
+  PK: Scalars["ID"];
+  UpdatedAt?: Maybe<Scalars["AWSDateTime"]>;
   description: Scalars["String"];
-  id: Scalars["ID"];
   images?: Maybe<Scalars["String"]>;
   inventoryId: Scalars["ID"];
   name: Scalars["String"];
@@ -106,9 +111,9 @@ export type MutationPlaceOrderArgs = {
 
 export type Order = {
   __typename?: "Order";
-  CreateOn?: Maybe<Scalars["AWSDateTime"]>;
-  UpdatedOn?: Maybe<Scalars["AWSDateTime"]>;
-  id: Scalars["ID"];
+  CreateAt?: Maybe<Scalars["AWSDateTime"]>;
+  PK: Scalars["ID"];
+  UpdatedAt?: Maybe<Scalars["AWSDateTime"]>;
   items?: Maybe<Array<Item>>;
   orderStatus?: Maybe<Scalars["String"]>;
   total_price?: Maybe<Scalars["Float"]>;
@@ -118,8 +123,8 @@ export type Order = {
 export type PlaceOrder = {
   __typename?: "PlaceOrder";
   CreateOn?: Maybe<Scalars["AWSDateTime"]>;
+  PK: Scalars["ID"];
   UpdatedOn?: Maybe<Scalars["AWSDateTime"]>;
-  id: Scalars["ID"];
   message?: Maybe<Scalars["String"]>;
   status?: Maybe<Scalars["String"]>;
 };
@@ -132,13 +137,17 @@ export type PlaceOrderInput = {
 
 export type Query = {
   __typename?: "Query";
+  getInventories: Inventory;
+  getInventory?: Maybe<Inventory>;
   getInventoryItems?: Maybe<Inventory>;
+  getItems: Item;
   getUserInventories?: Maybe<User>;
+  getUsers: User;
   getUsersInventoriesItems?: Maybe<User>;
-  inventories: Array<Maybe<Inventory>>;
-  inventory?: Maybe<Inventory>;
-  items: Array<Maybe<Item>>;
-  users: Array<Maybe<User>>;
+};
+
+export type QueryGetInventoryArgs = {
+  id: Scalars["ID"];
 };
 
 export type QueryGetInventoryItemsArgs = {
@@ -149,8 +158,10 @@ export type QueryGetUserInventoriesArgs = {
   id: Scalars["ID"];
 };
 
-export type QueryInventoryArgs = {
-  id: Scalars["ID"];
+export type Schema = {
+  __typename?: "Schema";
+  mutation?: Maybe<Mutation>;
+  query?: Maybe<Query>;
 };
 
 export type Subscription = {
@@ -162,6 +173,7 @@ export type Subscription = {
 
 export enum Type {
   Admin = "ADMIN",
+  Customer = "CUSTOMER",
   Employee = "EMPLOYEE",
 }
 
@@ -175,14 +187,20 @@ export type UpdateItem = {
 
 export type User = {
   __typename?: "User";
-  CreateOn?: Maybe<Scalars["AWSDateTime"]>;
-  UpdatedOn?: Maybe<Scalars["AWSDateTime"]>;
+  CreateAt?: Maybe<Scalars["AWSDateTime"]>;
+  PK: Scalars["ID"];
+  UpdatedAt?: Maybe<Scalars["AWSDateTime"]>;
   address?: Maybe<Scalars["String"]>;
   email: Scalars["String"];
-  id: Scalars["ID"];
   inventory?: Maybe<Array<Maybe<Inventory>>>;
   name: Scalars["String"];
-  password: Scalars["String"];
+  password?: Maybe<Scalars["String"]>;
   phone?: Maybe<Scalars["String"]>;
-  type?: Maybe<Scalars["String"]>;
+  userType: Type;
+};
+
+export type UserResult = {
+  __typename?: "UserResult";
+  items: Array<User>;
+  nextToken: Scalars["String"];
 };

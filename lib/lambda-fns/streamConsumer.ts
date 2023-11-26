@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DynamoDBStreamEvent, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { logger, metrics, tracer } from "../utils/index";
+import { logger, metrics, tracer } from "../utils";
 
 const sqs = new AWS.SQS();
 

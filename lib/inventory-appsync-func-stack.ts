@@ -3,7 +3,7 @@ import { Construct } from "constructs";
 import * as appsync from "aws-cdk-lib/aws-appsync";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { join } from "path";
-import { bundleAppSyncResolver } from "./utils/helpers";
+// import { bundleAppSyncResolver } from "./utils/helpers";
 
 interface InventoryAppsyncFuncStackProps extends cdk.StackProps {
   inventories_table: dynamodb.Table;
@@ -31,17 +31,19 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
 
         // The after step
         export function response(ctx) {
-          return ctx.prev.result
+          console.log("Zooooom>>>>>",ctx.prev.result);
+          
+          return ctx.prev.result.items
         }
     `);
     const add_user = new appsync.AppsyncFunction(this, "func-add-post", {
       name: "add_employee",
       api: props.api,
       dataSource: InventoryDS,
-      code: bundleAppSyncResolver("src/resolvers/createUser.ts"),
-      // code: appsync.Code.fromAsset(
-      //   join(__dirname, "./mappings/mutations/mutation.createUser.js")
-      // ),
+      // code: bundleAppSyncResolver("src/resolvers/createUser.ts"),
+      code: appsync.Code.fromAsset(
+        join(__dirname, "./mappings/mutations/mutation.createUser.js")
+      ),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
@@ -49,7 +51,10 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       name: "add_item",
       api: props.api,
       dataSource: InventoryDS,
-      code: bundleAppSyncResolver("src/resolvers/createItem.ts"),
+      // code: bundleAppSyncResolver("src/resolvers/createItem.ts"),
+      code: appsync.Code.fromAsset(
+        join(__dirname, "./mappings/mutations/mutation.createUser.js")
+      ),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 

@@ -1,6 +1,6 @@
 import { DynamoDBStreamEvent, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { logger, metrics, tracer } from "../utils/index";
+import { logger, metrics, tracer } from "../utils";
 // import type { Subsegment } from "aws-xray-sdk-core";
 const sqs = new AWS.SQS();
 

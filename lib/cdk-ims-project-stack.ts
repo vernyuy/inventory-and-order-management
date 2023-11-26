@@ -28,15 +28,15 @@ export class CdkImsProjectStack extends cdk.Stack {
 
     // Configuring CI/CD pipeline
 
-    // new CodePipeline(this, "Pipeline", {
-    //   synth: new ShellStep("synth", {
-    //     input: CodePipelineSource.gitHub(
-    //       "vernyuy/inventory-and-order-management",
-    //       "main"
-    //     ),
-    //     commands: ["npm ci", "npm run build", "npx cdk synth"],
-    //   }),
-    // });
+    new CodePipeline(this, "Pipeline", {
+      synth: new ShellStep("synth", {
+        input: CodePipelineSource.gitHub(
+          "vernyuy/inventory-and-order-management",
+          "main"
+        ),
+        commands: ["npm ci", "npm run build", "npx cdk synth"],
+      }),
+    });
 
     // cognito pool
 
