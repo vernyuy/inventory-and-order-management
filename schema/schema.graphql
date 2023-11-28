@@ -10,7 +10,7 @@ type Schema {
 }
 
 type User @aws_api_key @aws_cognito_user_pools {
-  PK: String!
+  PK: ID!
   name: String!
   email: String!
   password: String
@@ -19,19 +19,12 @@ type User @aws_api_key @aws_cognito_user_pools {
   UpdatedAt: AWSDateTime
   phone: String
   address: String
-  inventory: [Inventory]
+  items: [Item]
 }
 
 type UserResult {
-  items: [User!]!
-  nextToken: String!
-}
-type Inventory {
-  PK: ID!
-  items: [Item]
-  CreateAt: AWSDateTime
-  UpdatedAt: AWSDateTime
-  employee: User!
+  items: [User!]
+  nextToken: String
 }
 
 type Item @aws_api_key @aws_cognito_user_pools {
@@ -39,19 +32,23 @@ type Item @aws_api_key @aws_cognito_user_pools {
   name: String!
   description: String!
   quantity_in_stock: Int!
-  CreateAt: AWSDateTime
-  UpdatedAt: AWSDateTime
+  createAt: AWSDateTime
+  updatedAt: AWSDateTime
   images: String
   price: Float!
-  inventoryId: ID!
+}
+
+type ItemResult {
+  items: [Item!]
+  nextToken: String
 }
 
 type Order {
   PK: ID!
   items: [Item!]
   total_price: Float
-  CreateAt: AWSDateTime
-  UpdatedAt: AWSDateTime
+  createAt: AWSDateTime
+  updatedAt: AWSDateTime
   orderStatus: String
   total_qauntity: Int
 }
@@ -60,39 +57,32 @@ type PlaceOrder {
   PK: ID!
   status: String
   message: String
-  CreateOn: AWSDateTime
-  UpdatedOn: AWSDateTime
+  createOn: AWSDateTime
+  updatedOn: AWSDateTime
 }
 
 type Query {
-  getUsers: User @aws_api_key @aws_cognito_user_pools(cognito_groups: ["admin"])
+  getUsers(limit: Int, nextToken: String): UserResult
+    @aws_api_key
+    @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  getItems: Item! @aws_api_key @aws_cognito_user_pools
+  getItems(limit: Int, nextToken: String): ItemResult
+    @aws_api_key
+    @aws_cognito_user_pools
 
-  getInventories: Inventory!
+  getItem(id: String): ItemResult @aws_api_key @aws_cognito_user_pools
+
+  getUserItems(id: ID!, limit: Int, nextToken: String): User
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
-
-  getInventory(id: ID!): Inventory @aws_api_key @aws_cognito_user_pools
-
-  getUserInventories(id: ID!): User
-    @aws_api_key
-    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
-
-  getUsersInventoriesItems: User
-    @aws_api_key
-    @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
-
-  getInventoryItems(inventoryId: ID!): Inventory
 }
 
 input CreateUser {
-  PK: ID!
   name: String!
   email: String!
   userType: TYPE!
-  CreateAt: AWSDateTime
-  UpdatedAt: AWSDateTime
+  createAt: AWSDateTime
+  updatedAt: AWSDateTime
   phone: String
   address: String
 }
@@ -102,8 +92,7 @@ input CreateItem {
   description: String
   quantity_in_stock: Int!
   images: String
-  inventoryId: ID!
-  employeeId: ID!
+  userId: ID!
   price: Float!
 }
 
@@ -113,10 +102,6 @@ input UpdateItem {
   description: String
   price: Float
   quantity: Int
-}
-
-input CreateInventory {
-  employeeId: ID!
 }
 
 input AddItemToCart {
@@ -133,15 +118,9 @@ input PlaceOrderInput {
 }
 
 type Mutation {
-  createUser(input: CreateUser!): User
-    @aws_api_key
-    @aws_cognito_user_pools(cognito_groups: ["admin"])
+  createUser(input: CreateUser!): User @aws_api_key
 
   createItem(input: CreateItem!): Item
-    @aws_api_key
-    @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
-
-  createInventory(input: CreateInventory): Inventory!
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 

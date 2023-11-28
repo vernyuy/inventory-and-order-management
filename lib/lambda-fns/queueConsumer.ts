@@ -1,8 +1,5 @@
 import { SQSEvent } from "aws-lambda";
 import { DynamoDB } from "aws-sdk";
-// import { logger, metrics, tracer } from "../utils";
-// import { v4 as uuidv4 } from "uuid";
-// import type { Subsegment } from "aws-xray-sdk-core";
 
 const ddbClient = new DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;

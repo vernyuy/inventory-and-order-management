@@ -31,9 +31,8 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
 
         // The after step
         export function response(ctx) {
-          console.log("Zooooom>>>>>",ctx.prev.result);
-          
-          return ctx.prev.result.items
+          console.log("Zooooom>>>>>",ctx.prev.result.items);
+          return ctx.prev.result
         }
     `);
     const add_user = new appsync.AppsyncFunction(this, "func-add-post", {
@@ -53,26 +52,12 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       dataSource: InventoryDS,
       // code: bundleAppSyncResolver("src/resolvers/createItem.ts"),
       code: appsync.Code.fromAsset(
-        join(__dirname, "./mappings/mutations/mutation.createUser.js")
+        join(__dirname, "./mappings/mutations/mutation.createItem.js")
       ),
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
-    const add_inventory = new appsync.AppsyncFunction(
-      this,
-      "func-add-inventory",
-      {
-        name: "add_inventory",
-        api: props.api,
-        dataSource: InventoryDS,
-        code: appsync.Code.fromAsset(
-          join(__dirname, "./mappings/mutations/mutation.createInventory.js")
-        ),
-        runtime: appsync.FunctionRuntime.JS_1_0_0,
-      }
-    );
-
-    const get_user_inventories = new appsync.AppsyncFunction(
+    const get_user_items = new appsync.AppsyncFunction(
       this,
       "getUserInventories",
       {
@@ -80,7 +65,7 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
         api: props.api,
         dataSource: InventoryDS,
         code: appsync.Code.fromAsset(
-          join(__dirname, "mappings/queries/query.getUserInventories.js")
+          join(__dirname, "mappings/queries/query.getUserItems.js")
         ),
         runtime: appsync.FunctionRuntime.JS_1_0_0,
       }
@@ -96,20 +81,6 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
-    const get_inventories = new appsync.AppsyncFunction(
-      this,
-      "func-get-inventories",
-      {
-        name: "get_inventories_function",
-        api: props.api,
-        dataSource: InventoryDS,
-        code: appsync.Code.fromAsset(
-          join(__dirname, "mappings/queries/query.getInventories.js")
-        ),
-        runtime: appsync.FunctionRuntime.JS_1_0_0,
-      }
-    );
-
     const get_items = new appsync.AppsyncFunction(this, "func-get-items", {
       name: "get_items_func",
       api: props.api,
@@ -120,34 +91,6 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       runtime: appsync.FunctionRuntime.JS_1_0_0,
     });
 
-    const get_inentory_items = new appsync.AppsyncFunction(
-      this,
-      "get-inventory-items",
-      {
-        name: "inventory_items_func",
-        api: props.api,
-        dataSource: InventoryDS,
-        code: appsync.Code.fromAsset(
-          join(__dirname, "mappings/queries/query.getInventoryItems.js")
-        ),
-        runtime: appsync.FunctionRuntime.JS_1_0_0,
-      }
-    );
-
-    const get_users_iventories_items = new appsync.AppsyncFunction(
-      this,
-      "get_users_iventories_items",
-      {
-        name: "get_users_iventories_items",
-        api: props.api,
-        dataSource: InventoryDS,
-        code: appsync.Code.fromAsset(
-          join(__dirname, "mappings/queries/query.getUsersInventoriesItems.js")
-        ),
-        runtime: appsync.FunctionRuntime.JS_1_0_0,
-      }
-    );
-
     new appsync.Resolver(this, "pipeline-resolver-get-items", {
       api: props.api,
       typeName: "Query",
@@ -157,12 +100,12 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       code: passthrough,
     });
 
-    new appsync.Resolver(this, "getUserInventoriesRes", {
+    new appsync.Resolver(this, "getUserItemsRes", {
       api: props.api,
       typeName: "Query",
-      fieldName: "getUserInventories",
+      fieldName: "getUserItems",
       runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [get_user_inventories],
+      pipelineConfig: [get_user_items],
       code: passthrough,
     });
 
@@ -175,37 +118,6 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       code: passthrough,
     });
 
-    new appsync.Resolver(this, "pipeline-resolver-get-inventories", {
-      api: props.api,
-      typeName: "Query",
-      fieldName: "getInventories",
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [get_inventories],
-      code: passthrough,
-    });
-
-    new appsync.Resolver(this, "pipeline-resolver-get-inventory-items", {
-      api: props.api,
-      typeName: "Query",
-      fieldName: "getInventoryItems",
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [get_inentory_items],
-      code: passthrough,
-    });
-
-    new appsync.Resolver(
-      this,
-      "pipeline-resolver-get-users-inventories-items",
-      {
-        api: props.api,
-        typeName: "Query",
-        fieldName: "getUsersInventoriesItems",
-        runtime: appsync.FunctionRuntime.JS_1_0_0,
-        pipelineConfig: [get_users_iventories_items],
-        code: passthrough,
-      }
-    );
-
     new appsync.Resolver(this, "pipeline-resolver-create-item", {
       api: props.api,
       typeName: "Mutation",
@@ -213,15 +125,6 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       code: passthrough,
       runtime: appsync.FunctionRuntime.JS_1_0_0,
       pipelineConfig: [add_item],
-    });
-
-    new appsync.Resolver(this, "pipeline-resolver-create-inventory", {
-      api: props.api,
-      typeName: "Mutation",
-      fieldName: "createInventory",
-      code: passthrough,
-      runtime: appsync.FunctionRuntime.JS_1_0_0,
-      pipelineConfig: [add_inventory],
     });
 
     new appsync.Resolver(this, "pipeline-resolver-create-posts", {

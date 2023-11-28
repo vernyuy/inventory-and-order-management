@@ -1,8 +1,32 @@
 import { DynamoDBStreamEvent, Context } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { logger, metrics, tracer } from "../utils";
+import { Logger } from "@aws-lambda-powertools/logger";
+import { Metrics } from "@aws-lambda-powertools/metrics";
+import { Tracer } from "@aws-lambda-powertools/tracer";
+import { PT_VERSION } from "@aws-lambda-powertools/commons/lib/version";
 // import type { Subsegment } from "aws-xray-sdk-core";
 const sqs = new AWS.SQS();
+
+const defaultValues = {
+  region: process.env.AWS_REGION || "N/A",
+  executionEnv: process.env.AWS_EXECUTION_ENV || "N/A",
+};
+
+const logger = new Logger({
+  persistentLogAttributes: {
+    ...defaultValues,
+    logger: {
+      name: "@aws-lambda-powertools/logger",
+      version: PT_VERSION,
+    },
+  },
+});
+
+const metrics = new Metrics({
+  defaultDimensions: defaultValues,
+});
+
+const tracer = new Tracer();
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;

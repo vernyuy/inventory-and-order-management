@@ -9,11 +9,11 @@ import { StripeWebhookStack } from "./stripe-webhook-stack";
 import { OrderAppsyncFuncStack } from "./order-appsync-func-stack";
 import { InventoryAppsyncFuncStack } from "./inventory-appsync-func-stack";
 // import { QueryAppsyncFuncStack } from "./query-appsync-func-stack";
-import {
-  CodePipeline,
-  CodePipelineSource,
-  ShellStep,
-} from "aws-cdk-lib/pipelines";
+// import {
+//   CodePipeline,
+//   CodePipelineSource,
+//   ShellStep,
+// } from "aws-cdk-lib/pipelines";
 import * as iam from "aws-cdk-lib/aws-iam";
 // import * as secret from "aws-cdk-lib/aws-secretsmanager"
 
@@ -28,15 +28,15 @@ export class CdkImsProjectStack extends cdk.Stack {
 
     // Configuring CI/CD pipeline
 
-    new CodePipeline(this, "Pipeline", {
-      synth: new ShellStep("synth", {
-        input: CodePipelineSource.gitHub(
-          "vernyuy/inventory-and-order-management",
-          "main"
-        ),
-        commands: ["npm ci", "npm run build", "npx cdk synth"],
-      }),
-    });
+    // new CodePipeline(this, "Pipeline", {
+    //   synth: new ShellStep("synth", {
+    //     input: CodePipelineSource.gitHub(
+    //       "vernyuy/inventory-and-order-management",
+    //       "main"
+    //     ),
+    //     commands: ["npm ci", "npm run build", "npx cdk synth"],
+    //   }),
+    // });
 
     // cognito pool
 
@@ -98,30 +98,26 @@ export class CdkImsProjectStack extends cdk.Stack {
     });
     // DDB GSI
     const globalSecondaryIndexProps: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "UserInventoryIndex",
+      indexName: "UserItemIndex",
       partitionKey: {
-        name: "UserInventoryIndexPK",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "UserInventoryIndexSK",
+        name: "UserItemIndexPK",
         type: dynamodb.AttributeType.STRING,
       },
     };
 
-    const globalSecondaryIndexProps2: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "InventoryItemIndex",
-      partitionKey: {
-        name: "InventoryItemIndexSK",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "InventoryItemIndexPK",
-        type: dynamodb.AttributeType.STRING,
-      },
-    };
+    // const globalSecondaryIndexProps2: dynamodb.GlobalSecondaryIndexProps = {
+    //   indexName: "InventoryItemIndex",
+    //   partitionKey: {
+    //     name: "InventoryItemIndexSK",
+    //     type: dynamodb.AttributeType.STRING,
+    //   },
+    //   sortKey: {
+    //     name: "InventoryItemIndexPK",
+    //     type: dynamodb.AttributeType.STRING,
+    //   },
+    // };
     test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps);
-    test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps2);
+    // test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps2);
     //// Dynamodb table to register orders
 
     const orders_table = new dynamodb.Table(this, "order-table", {
