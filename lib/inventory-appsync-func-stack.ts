@@ -39,7 +39,6 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       name: "add_employee",
       api: props.api,
       dataSource: InventoryDS,
-      // code: bundleAppSyncResolver("src/resolvers/createUser.ts"),
       code: appsync.Code.fromAsset(
         join(__dirname, "./mappings/mutations/mutation.createUser.js")
       ),
@@ -50,7 +49,6 @@ export class InventoryAppsyncFuncStack extends cdk.Stack {
       name: "add_item",
       api: props.api,
       dataSource: InventoryDS,
-      // code: bundleAppSyncResolver("src/resolvers/createItem.ts"),
       code: appsync.Code.fromAsset(
         join(__dirname, "./mappings/mutations/mutation.createItem.js")
       ),

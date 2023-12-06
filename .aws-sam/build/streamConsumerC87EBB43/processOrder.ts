@@ -63,16 +63,13 @@ export async function main(
 
     const id = event.Records[0].dynamodb?.NewImage?.PK.S;
     const orderId = event.Records[0].dynamodb?.NewImage?.SK.S;
-    logger.info(`Order Id`, {
-      orderId,
-      id,
-    });
+
     const cartItems = await docClient
       .query({
         TableName: tableName,
-        KeyConditionExpression: "PK = :id AND begins_with(SK, :sk)",
+        KeyConditionExpression: "PK = :id AND begins_with(PK, :sk)",
         FilterExpression: "cartProductStatus = :status",
-        ProjectionExpression: "SK, quantity, unit_price",
+        ProjectionExpression: "sk, quantity, unit_price",
         ExpressionAttributeValues: {
           ":id": id,
           ":sk": "ITEM#",

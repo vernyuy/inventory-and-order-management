@@ -4,11 +4,9 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 import * as sqs from "aws-cdk-lib/aws-sqs";
-// import { LambdaFnsStack } from "./lambda-fns-stack";
 import { StripeWebhookStack } from "./stripe-webhook-stack";
 import { OrderAppsyncFuncStack } from "./order-appsync-func-stack";
 import { InventoryAppsyncFuncStack } from "./inventory-appsync-func-stack";
-// import { QueryAppsyncFuncStack } from "./query-appsync-func-stack";
 // import {
 //   CodePipeline,
 //   CodePipelineSource,
@@ -105,20 +103,7 @@ export class CdkImsProjectStack extends cdk.Stack {
       },
     };
 
-    // const globalSecondaryIndexProps2: dynamodb.GlobalSecondaryIndexProps = {
-    //   indexName: "InventoryItemIndex",
-    //   partitionKey: {
-    //     name: "InventoryItemIndexSK",
-    //     type: dynamodb.AttributeType.STRING,
-    //   },
-    //   sortKey: {
-    //     name: "InventoryItemIndexPK",
-    //     type: dynamodb.AttributeType.STRING,
-    //   },
-    // };
     test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps);
-    // test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps2);
-    //// Dynamodb table to register orders
 
     const orders_table = new dynamodb.Table(this, "order-table", {
       partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
@@ -171,13 +156,6 @@ export class CdkImsProjectStack extends cdk.Stack {
 
     dlq.addToResourcePolicy(SQSQueueSSLRequestsOnlyPolicy);
 
-    /// Lambda to process orders
-    // new LambdaFnsStack(this, "processOrder", {
-    //   queue: queue,
-    //   ddbTable: orders_table,
-    //   env: { account: this.account, region: this.region },
-    // });
-
     //  Stripe Webhook
     new StripeWebhookStack(this, "stripeWebhook", {
       orders_table: orders_table,
@@ -197,12 +175,5 @@ export class CdkImsProjectStack extends cdk.Stack {
       api: api,
       env: { account: this.account, region: this.region },
     });
-
-    // Query functions
-    // new QueryAppsyncFuncStack(this, "GetAppsyncFuncStack", {
-    //   api: api,
-    //   env: { account: this.account, region: this.region },
-    //   inventory_table: test_table,
-    // });
   }
 }

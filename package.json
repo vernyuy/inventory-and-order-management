@@ -31,15 +31,15 @@
     "typescript": "~5.0.4"
   },
   "dependencies": {
-    "@aws-lambda-powertools/logger": "^1.12.1",
+    "@aws-lambda-powertools/batch": "^1.17.0",
+    "@aws-lambda-powertools/logger": "^1.17.0",
     "@aws-lambda-powertools/metrics": "^1.12.1",
     "@aws-lambda-powertools/tracer": "^1.12.1",
-    "@stripe/stripe-js": "^2.2.0",
     "aws-cdk-lib": "^2.85.0",
     "aws-lambda": "^1.0.7",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21",
-    "stripe": "^13.11.0",
+    "stripe": "^14.7.0",
     "uuid": "^9.0.0"
   }
 }

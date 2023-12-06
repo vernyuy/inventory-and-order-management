@@ -14,15 +14,17 @@ export class StripeWebhookStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StripeWebhookStackProps) {
     super(scope, id, props);
     const webhook = new lambda.Function(this, "webhook-fn", {
-      handler: "webhook.lambdaHandler",
+      handler: "index.lambdaHandler",
       runtime: lambda.Runtime.NODEJS_14_X,
-      code: lambda.Code.fromAsset(join(__dirname, "lambda-fns")),
+      code: lambda.Code.fromAsset(join(__dirname, "lambda-fns/webhook")),
       environment: {
         TABLE_NAME: props.orders_table.tableName,
         USER_TABLE: props.inventory_table.tableName,
         REGION: cdk.Stack.of(this).region,
       },
       tracing: Tracing.ACTIVE,
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 512,
     });
 
     props.orders_table.grantWriteData(webhook);

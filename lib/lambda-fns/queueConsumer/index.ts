@@ -6,7 +6,6 @@ import {
   EventType,
   processPartialResponse,
 } from "@aws-lambda-powertools/batch";
-//  import { Logger } from "@aws-lambda-powertools/logger";
 
 const ddbClient = new DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;

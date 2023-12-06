@@ -6,16 +6,19 @@ import { Logger } from "@aws-lambda-powertools/logger";
 import { Metrics } from "@aws-lambda-powertools/metrics";
 import { Tracer } from "@aws-lambda-powertools/tracer";
 import { PT_VERSION } from "@aws-lambda-powertools/commons/lib/version";
-import Stripe from "stripe";
-
-const sqs = new AWS.SQS();
-const stripe = new Stripe(
-  "sk_test_51NVJ4RECpTjJRRCodmsyMIK613vbK0ElhyUwMReszzx6qs8FzZQDdi8VtZ5DjYkn5gNQryjTDMNkf01QLKVwxwTP00DT8HavNL",
-  {
-    typescript: true,
-    apiVersion: "2023-08-16",
-  }
+// import { Stripe } from "stripe";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const Stripe = require("stripe")(
+  "sk_test_51NVJ4RECpTjJRRCodmsyMIK613vbK0ElhyUwMReszzx6qs8FzZQDdi8VtZ5DjYkn5gNQryjTDMNkf01QLKVwxwTP00DT8HavNL"
 );
+const sqs = new AWS.SQS();
+// const stripe = new Stripe(
+//   "sk_test_51NVJ4RECpTjJRRCodmsyMIK613vbK0ElhyUwMReszzx6qs8FzZQDdi8VtZ5DjYkn5gNQryjTDMNkf01QLKVwxwTP00DT8HavNL",
+//   {
+//     typescript: true,
+//     apiVersion: "2023-10-16",
+//   }
+// );
 
 const defaultValues = {
   region: process.env.AWS_REGION || "N/A",

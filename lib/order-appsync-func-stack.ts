@@ -13,6 +13,7 @@ import {
   DynamoEventSource,
   SqsEventSource,
 } from "aws-cdk-lib/aws-lambda-event-sources";
+import { CfnOutput } from "aws-cdk-lib";
 
 interface OrderAppsyncFuncStackProps extends cdk.StackProps {
   orders_table: dynamodb.Table;
@@ -37,9 +38,11 @@ export class OrderAppsyncFuncStack extends cdk.Stack {
     );
 
     const queueConsumer = new lambda.Function(this, "consumerFunction", {
-      handler: "queueConsumer.main",
+      handler: "index.main",
       runtime: lambda.Runtime.NODEJS_14_X,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda-fns")),
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "lambda-fns/queueConsumer")
+      ),
       environment: {
         TABLE_NAME: props.orders_table.tableName,
         QUEUE_NAME: props.queue.queueName,
@@ -72,9 +75,11 @@ export class OrderAppsyncFuncStack extends cdk.Stack {
     props.orders_table.grantReadWriteData(process_order);
 
     const streamConsumer = new lambda.Function(this, "streamConsumer", {
-      handler: "streamConsumer.main",
+      handler: "index.main",
       runtime: lambda.Runtime.NODEJS_14_X,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda-fns")),
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "lambda-fns/streamConsumer")
+      ),
       environment: {
         TABLE_NAME: props.orders_table.tableName,
         QUEUE_NAME: props.queue.queueName,
@@ -83,6 +88,7 @@ export class OrderAppsyncFuncStack extends cdk.Stack {
       layers: [powertoolsLayer],
       tracing: Tracing.ACTIVE,
       onSuccess: new SqsDestination(props.queue),
+      retryAttempts: 0,
     });
 
     streamConsumer.addEventSource(
@@ -90,6 +96,12 @@ export class OrderAppsyncFuncStack extends cdk.Stack {
         startingPosition: lambda.StartingPosition.LATEST,
       })
     );
+
+    const lambdaUrl = streamConsumer.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+    });
+
+    new CfnOutput(this, "FunctionUrl ", { value: lambdaUrl.url });
 
     queueConsumer.addEventSource(new SqsEventSource(props.queue));
 
