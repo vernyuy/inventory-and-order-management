@@ -7,8 +7,8 @@ import { Tracing } from "aws-cdk-lib/aws-lambda";
 import { join } from "path";
 
 interface StripeWebhookStackProps extends cdk.StackProps {
-  orders_table: dynamodb.Table;
-  inventory_table: dynamodb.Table;
+  ordersTable: dynamodb.Table;
+  inventoryTable: dynamodb.Table;
 }
 export class StripeWebhookStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StripeWebhookStackProps) {
@@ -18,8 +18,8 @@ export class StripeWebhookStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset(join(__dirname, "lambda-fns/webhook")),
       environment: {
-        TABLE_NAME: props.orders_table.tableName,
-        USER_TABLE: props.inventory_table.tableName,
+        TABLE_NAME: props.ordersTable.tableName,
+        USER_TABLE: props.inventoryTable.tableName,
         REGION: cdk.Stack.of(this).region,
       },
       tracing: Tracing.ACTIVE,
@@ -27,8 +27,8 @@ export class StripeWebhookStack extends cdk.Stack {
       memorySize: 512,
     });
 
-    props.orders_table.grantWriteData(webhook);
-    props.inventory_table.grantReadData(webhook);
+    props.ordersTable.grantWriteData(webhook);
+    props.inventoryTable.grantReadData(webhook);
 
     const stripe_api = new apigateway.RestApi(this, "webhook");
     const webhook_api = stripe_api.root.addResource("webhook");

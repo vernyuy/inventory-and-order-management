@@ -1,4 +1,4 @@
-enum TYPE {
+enum USERTYPE {
   ADMIN
   EMPLOYEE
   CUSTOMER
@@ -7,96 +7,96 @@ enum TYPE {
 type Schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }
 
 type User @aws_api_key @aws_cognito_user_pools {
-  PK: ID!
+  id: ID!
   name: String!
   email: String!
   password: String
-  userType: TYPE!
-  CreateAt: AWSDateTime
-  UpdatedAt: AWSDateTime
+  userType: USERTYPE!
   phone: String
   address: String
-  items: [Item]
+  items: [InventoryItem]
+  createdAt: AWSDateTime
+  UpdatedAt: AWSDateTime
 }
 
 type UserResult {
-  items: [User!]
+  items: [User!]!
   nextToken: String
 }
 
-type Item @aws_api_key @aws_cognito_user_pools {
+type InventoryItem @aws_api_key @aws_cognito_user_pools {
   PK: ID!
   name: String!
   description: String!
-  quantity_in_stock: Int!
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  quantityInStock: Int!
   images: String
   price: Float!
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
 }
 
-type ItemResult {
-  items: [Item!]
+type InventoryItemResult {
+  items: [InventoryItem!]!
   nextToken: String
 }
 
 type Order {
-  PK: ID!
-  items: [Item!]
-  total_price: Float
-  createAt: AWSDateTime
-  updatedAt: AWSDateTime
+  id: ID!
+  items: [InventoryItem!]
+  totalPrice: Float
   orderStatus: String
-  total_qauntity: Int
+  totalQuantity: Int
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
 }
 
 type PlaceOrder {
-  PK: ID!
+  id: ID!
   status: String
   message: String
-  createOn: AWSDateTime
-  updatedOn: AWSDateTime
+  createdAt: AWSDateTime
+  updatedAt: AWSDateTime
 }
 
 type Query {
   getUsers(limit: Int, nextToken: String): UserResult
-    @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin"])
 
-  getItems(limit: Int, nextToken: String): ItemResult
+  getInventoryItems(limit: Int, nextToken: String): InventoryItemResult
     @aws_api_key
     @aws_cognito_user_pools
 
-  getItem(id: String): ItemResult @aws_api_key @aws_cognito_user_pools
+  getItem(id: String): InventoryItem @aws_api_key @aws_cognito_user_pools
 
-  getUserItems(id: ID!, limit: Int, nextToken: String): User
+  getUserInventoryItems(id: ID!, limit: Int, nextToken: String): User
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "user"])
 }
 
-input CreateUser {
+input CreateUserInput {
   name: String!
   email: String!
-  userType: TYPE!
+  userType: USERTYPE!
   createAt: AWSDateTime
   updatedAt: AWSDateTime
   phone: String
   address: String
 }
 
-input CreateItem {
+input CreateItemInput {
   name: String!
   description: String
-  quantity_in_stock: Int!
+  quantityInStock: Int!
   images: String
   userId: ID!
   price: Float!
 }
 
-input UpdateItem {
+input UpdateItemInput {
   id: ID!
   name: String
   description: String
@@ -104,11 +104,11 @@ input UpdateItem {
   quantity: Int
 }
 
-input AddItemToCart {
+input AddItemToCartInput {
   item: ID!
   userId: ID!
   quantity: Int!
-  unit_price: Float!
+  unitPrice: Float!
 }
 
 input PlaceOrderInput {
@@ -118,19 +118,19 @@ input PlaceOrderInput {
 }
 
 type Mutation {
-  createUser(input: CreateUser!): User @aws_api_key
+  createUser(input: CreateUserInput!): User @aws_api_key
 
-  createItem(input: CreateItem!): Item
+  createInventoryItem(input: CreateItemInput!): InventoryItem
     @aws_api_key
     @aws_cognito_user_pools(cognito_groups: ["admin", "employee"])
 
-  addItemToCart(input: AddItemToCart): Item!
+  addItemToCart(input: AddItemToCartInput): InventoryItem!
 
   placeOrder(input: PlaceOrderInput): PlaceOrder!
 }
 
 type Subscription {
   onCreateUser: User @aws_subscribe(mutations: ["createUser"]) # Basic Subscription filtering
-  onCreateItem: Item @aws_subscribe(mutations: ["createItem"]) # Basic subscription filtering
+  onCreateItem: InventoryItem @aws_subscribe(mutations: ["createInventoryItem"]) # Basic subscription filtering
   onPlaceOrder: PlaceOrder @aws_subscribe(mutations: ["placeOrder"])
 }

@@ -13,8 +13,6 @@
   },
   "devDependencies": {
     "@aws-appsync/utils": "^1.2.4",
-    "@graphql-codegen/cli": "^2.13.1",
-    "@graphql-codegen/typescript": "^2.7.3",
     "@types/aws-lambda": "^8.10.119",
     "@types/jest": "^29.5.1",
     "@types/node": "20.1.7",

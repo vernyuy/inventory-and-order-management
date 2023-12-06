@@ -7,34 +7,13 @@ import * as sqs from "aws-cdk-lib/aws-sqs";
 import { StripeWebhookStack } from "./stripe-webhook-stack";
 import { OrderAppsyncFuncStack } from "./order-appsync-func-stack";
 import { InventoryAppsyncFuncStack } from "./inventory-appsync-func-stack";
-// import {
-//   CodePipeline,
-//   CodePipelineSource,
-//   ShellStep,
-// } from "aws-cdk-lib/pipelines";
 import * as iam from "aws-cdk-lib/aws-iam";
-// import * as secret from "aws-cdk-lib/aws-secretsmanager"
 
 export class CdkImsProjectStack extends cdk.Stack {
   public orders_table: dynamodb.Table;
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Creating github secret in aws secrets manager
-
-    // new secret
-
-    // Configuring CI/CD pipeline
-
-    // new CodePipeline(this, "Pipeline", {
-    //   synth: new ShellStep("synth", {
-    //     input: CodePipelineSource.gitHub(
-    //       "vernyuy/inventory-and-order-management",
-    //       "main"
-    //     ),
-    //     commands: ["npm ci", "npm run build", "npx cdk synth"],
-    //   }),
-    // });
 
     // cognito pool
 
@@ -89,23 +68,27 @@ export class CdkImsProjectStack extends cdk.Stack {
 
     /////  DDB Table to store inventories
 
-    const test_table = new dynamodb.Table(this, "test-table", {
+    const inventoryTable = new dynamodb.Table(this, "inventoryTable", {
       partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
       sortKey: { type: dynamodb.AttributeType.STRING, name: "SK" },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
     // DDB GSI
     const globalSecondaryIndexProps: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "UserItemIndex",
+      indexName: "ListUsersAndInventoryItems",
       partitionKey: {
-        name: "UserItemIndexPK",
+        name: "GSI1PK",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "GSI1SK",
         type: dynamodb.AttributeType.STRING,
       },
     };
 
-    test_table.addGlobalSecondaryIndex(globalSecondaryIndexProps);
+    inventoryTable.addGlobalSecondaryIndex(globalSecondaryIndexProps);
 
-    const orders_table = new dynamodb.Table(this, "order-table", {
+    const ordersTable = new dynamodb.Table(this, "order-table", {
       partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
       sortKey: { type: dynamodb.AttributeType.STRING, name: "SK" },
       stream: dynamodb.StreamViewType.NEW_AND_OLD_IMAGES,
@@ -113,18 +96,18 @@ export class CdkImsProjectStack extends cdk.Stack {
     });
 
     const globalSecondaryIndexOrderProps: dynamodb.GlobalSecondaryIndexProps = {
-      indexName: "OrderItemIndex",
+      indexName: "ListOrders",
       partitionKey: {
-        name: "OrderItemIndexPK",
+        name: "GSI1PK",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "OrderItemIndexSK",
+        name: "GSK1SK",
         type: dynamodb.AttributeType.STRING,
       },
     };
 
-    orders_table.addGlobalSecondaryIndex(globalSecondaryIndexOrderProps);
+    ordersTable.addGlobalSecondaryIndex(globalSecondaryIndexOrderProps);
 
     // SQS queue
     const dlq = new sqs.Queue(this, "mainQueueDlq", {
@@ -158,20 +141,20 @@ export class CdkImsProjectStack extends cdk.Stack {
 
     //  Stripe Webhook
     new StripeWebhookStack(this, "stripeWebhook", {
-      orders_table: orders_table,
-      inventory_table: test_table,
+      ordersTable: ordersTable,
+      inventoryTable: inventoryTable,
       env: { account: this.account, region: this.region },
     });
     // Mutation functions
     new OrderAppsyncFuncStack(this, "orderAppsynceFuncStack", {
-      orders_table: orders_table,
+      ordersTable: ordersTable,
       queue: queue,
       api: api,
       env: { account: this.account, region: this.region },
     });
 
     new InventoryAppsyncFuncStack(this, "InventoryAppsyncFuncStack", {
-      inventories_table: test_table,
+      inventoryTable: inventoryTable,
       api: api,
       env: { account: this.account, region: this.region },
     });

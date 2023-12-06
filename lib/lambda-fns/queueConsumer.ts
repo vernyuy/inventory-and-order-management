@@ -6,7 +6,7 @@ import {
   EventType,
   processPartialResponse,
 } from "@aws-lambda-powertools/batch";
-//  import { Logger } from "@aws-lambda-powertools/logger";
+import { logger, metrics, tracer } from "./utils";
 
 const ddbClient = new DynamoDB.DocumentClient();
 const tableName = process.env.TABLE_NAME as string;
@@ -39,7 +39,7 @@ const recordHandler = async (record: SQSRecord): Promise<void> => {
         const res = await ddbClient.update(params).promise();
         console.log("Response", { res });
       } catch (err: unknown) {
-        // logger.info("Error: ", { err });
+        logger.info("Error: ", { err });
       }
     }
   }
